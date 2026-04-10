@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f0f0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>전시대 시간 배정</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg: #0f0f0f;
+  --bg2: #1a1a1a;
+  --bg3: #242424;
+  --bg4: #2e2e2e;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.15);
+  --text: #f0f0f0;
+  --text2: #999;
+  --text3: #555;
+  --accent: #4f8ef7;
+  --accent-bg: rgba(79,142,247,0.12);
+  --accent-border: rgba(79,142,247,0.3);
+  --danger: #f74f4f;
+  --danger-bg: rgba(247,79,79,0.1);
+  --male: #4f8ef7;
+  --male-bg: rgba(79,142,247,0.13);
+  --male-border: rgba(79,142,247,0.35);
+  --female: #f7507a;
+  --female-bg: rgba(247,80,122,0.13);
+  --female-border: rgba(247,80,122,0.35);
+  --assigned: #3ecf6e;
+  --assigned-bg: rgba(62,207,110,0.13);
+  --assigned-border: rgba(62,207,110,0.4);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; width: 100%; background: var(--bg); color: var(--text); font-family: 'Noto Sans KR', sans-serif; font-size: 15px; overflow: hidden; overscroll-behavior: none; }
+
+.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+
+.app-header {
+  padding: calc(var(--safe-top) + 14px) 18px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg); border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.app-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+.app-title span { color: var(--accent); }
+
+.tab-bar {
+  display: flex; background: var(--bg2);
+  border-top: 1px solid var(--border); flex-shrink: 0;
+  padding-bottom: var(--safe-bottom);
+}
+.tab-btn {
+  flex: 1; padding: 10px 2px 8px; background: transparent; border: none;
+  color: var(--text3); font-size: 10px; font-weight: 500; font-family: inherit;
+  cursor: pointer; transition: color .2s; display: flex; flex-direction: column;
+  align-items: center; gap: 4px;
+}
+.tab-btn .ti { font-size: 19px; line-height: 1; }
+.tab-btn.active { color: var(--accent); }
+
+.panel { display: none; flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+.panel.active { display: flex; flex-direction: column; }
+.panel-inner { padding: 14px 14px calc(16px + var(--safe-bottom)); display: flex; flex-direction: column; gap: 12px; }
+
+.sheets-header {
+  display: flex; gap: 6px; align-items: center;
+  overflow-x: auto; padding: 10px 14px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0; scrollbar-width: none;
+}
+.sheets-header::-webkit-scrollbar { display: none; }
+
+.sheet-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 11px; background: var(--bg3);
+  border: 1px solid var(--border); border-radius: 20px;
+  font-size: 12px; color: var(--text2); white-space: nowrap;
+  cursor: pointer; transition: all .15s; font-family: inherit;
+}
+.sheet-tab.active { background: var(--accent-bg); border-color: var(--accent-border); color: var(--accent); font-weight: 600; }
+.sheet-tab-close {
+  width: 15px; height: 15px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-size: 10px; background: rgba(255,255,255,0.07); color: var(--text2);
+}
+.add-sheet-btn {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--bg3);
+  border: 1px dashed var(--border2); color: var(--text2); font-size: 18px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: all .15s;
+}
+
+.section-label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 13px 14px; }
+.divider { height: 1px; background: var(--border); }
+.empty-state { text-align: center; padding: 28px 16px; color: var(--text3); font-size: 13px; line-height: 1.7; }
+
+.input-row { display: flex; gap: 7px; }
+.input-row > * { flex: 1; }
+.input-group { display: flex; flex-direction: column; gap: 4px; }
+.input-label { font-size: 10px; color: var(--text3); font-weight: 600; letter-spacing: .3px; }
+
+input[type=time], input[type=number], input[type=text] {
+  width: 100%; padding: 10px 11px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 14px; font-family: inherit;
+  appearance: none; -webkit-appearance: none; outline: none; transition: border-color .15s;
+}
+input:focus { border-color: var(--accent-border); }
+input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
+
+.btn {
+  padding: 10px 14px; border: 1px solid var(--border2); border-radius: 10px;
+  background: transparent; color: var(--text); font-size: 13px; font-weight: 500;
+  font-family: inherit; cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;
+}
+.btn:active { transform: scale(.96); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-danger { color: var(--danger); border-color: rgba(247,79,79,0.2); }
+.btn-sm { padding: 5px 11px; font-size: 12px; border-radius: 8px; }
+.btn-full { width: 100%; }
+
+.chip {
+  padding: 7px 13px; border-radius: 30px; font-size: 14px; font-family: inherit;
+  cursor: pointer; user-select: none; transition: all .15s;
+  min-height: 36px; display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  border: 1px solid var(--border2); background: var(--bg4); color: var(--text);
+}
+.chip:active { transform: scale(.94); }
+.chip.male { background: var(--male-bg); border-color: var(--male-border); color: var(--male); }
+.chip.female { background: var(--female-bg); border-color: var(--female-border); color: var(--female); }
+.chip.assigned { background: var(--assigned-bg); border-color: var(--assigned-border); color: var(--assigned); }
+.chip.sel-male { background: var(--male); border-color: var(--male); color: #fff; }
+.chip.sel-female { background: var(--female); border-color: var(--female); color: #fff; }
+.chip.dragging { opacity: 0.35; }
+
+.gdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.gdot.m { background: var(--male); }
+.gdot.f { background: var(--female); }
+
+.name-pool {
+  display: flex; flex-wrap: wrap; gap: 7px; min-height: 44px;
+  padding: 10px; background: var(--bg3); border-radius: 10px; border: 1px solid var(--border);
+}
+
+.slot-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color .15s, background .15s; }
+.slot-card.drag-over { border-color: var(--accent); background: var(--accent-bg); }
+.slot-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 13px; border-bottom: 1px solid var(--border); background: var(--bg3); }
+.slot-time { font-size: 14px; font-weight: 700; letter-spacing: -0.3px; font-variant-numeric: tabular-nums; }
+.slot-body { padding: 9px 10px; display: flex; flex-wrap: wrap; gap: 6px; min-height: 48px; }
+.slot-chip {
+  padding: 5px 10px; border-radius: 30px; font-size: 13px;
+  cursor: pointer; display: flex; align-items: center; gap: 5px; min-height: 32px;
+  transition: all .15s; font-family: inherit; border: 1px solid var(--border2); background: var(--bg4); color: var(--text);
+}
+.slot-chip.male { background: var(--male-bg); border-color: var(--male-border); color: var(--male); }
+.slot-chip.female { background: var(--female-bg); border-color: var(--female-border); color: var(--female); }
+.slot-chip .rx { width: 15px; height: 15px; background: rgba(255,255,255,0.07); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--text3); }
+.slot-hint { font-size: 12px; color: var(--text3); padding: 6px 2px; align-self: center; }
+
+.gender-toggle { display: flex; background: var(--bg3); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+.gbtn { flex: 1; padding: 10px 8px; border: none; background: transparent; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; transition: all .15s; color: var(--text3); }
+.gbtn.am { background: var(--male-bg); color: var(--male); }
+.gbtn.af { background: var(--female-bg); color: var(--female); }
+
+.name-manage-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 13px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; gap: 8px; }
+.name-manage-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+
+/* 봉사자 아이콘 그리드 */
+.vol-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; }
+.vol-icon-item {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 12px 6px 10px; border-radius: 14px; cursor: pointer;
+  background: var(--bg2); border: 2px solid var(--border); transition: all .15s;
+  position: relative;
+}
+.vol-icon-item:active { transform: scale(.94); }
+.vol-icon-item.sel-m { border-color: var(--male); background: var(--male-bg); }
+.vol-icon-item.sel-f { border-color: var(--female); background: var(--female-bg); }
+.vol-icon-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0; position: relative;
+}
+.vol-icon-avatar.m { background: var(--male-bg); border: 1.5px solid var(--male-border); }
+.vol-icon-avatar.f { background: var(--female-bg); border: 1.5px solid var(--female-border); }
+.vol-icon-name { font-size: 12px; font-weight: 500; color: var(--text); text-align: center; word-break: keep-all; line-height: 1.3; }
+.vol-icon-meta { font-size: 10px; color: var(--text3); text-align: center; line-height: 1.2; }
+.vol-check-badge {
+  position: absolute; top: 4px; right: 4px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--male); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
+}
+.vol-check-badge.f { background: var(--female); }
+
+.filter-tabs { display: flex; gap: 6px; }
+.fchip { padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg3); color: var(--text3); font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer; transition: all .15s; }
+.fchip.fa { border-color: var(--border2); color: var(--text); background: var(--bg4); }
+.fchip.fm { background: var(--male-bg); border-color: var(--male-border); color: var(--male); }
+.fchip.ff { background: var(--female-bg); border-color: var(--female-border); color: var(--female); }
+
+.export-box { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 13px; font-size: 13px; color: var(--text2); line-height: 1.85; white-space: pre-wrap; min-height: 90px; }
+.export-chip { padding: 6px 12px; border-radius: 20px; font-size: 12px; border: 1px solid var(--border); background: var(--bg3); color: var(--text2); cursor: pointer; font-family: inherit; transition: all .15s; }
+.export-chip.active { background: var(--accent-bg); border-color: var(--accent-border); color: var(--accent); font-weight: 600; }
+.export-sheet-selector { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.check-row { display: flex; align-items: center; gap: 10px; padding: 11px 13px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+.check-row input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex-shrink: 0; }
+.check-row label { font-size: 14px; color: var(--text); cursor: pointer; }
+
+.sheet-name-input {
+  background: transparent; border: none; border-bottom: 1px solid var(--accent-border);
+  color: var(--accent); font-size: 12px; font-weight: 600; font-family: inherit;
+  outline: none; width: 72px; padding: 1px 2px;
+}
+
+.toast {
+  position: fixed; bottom: calc(90px + var(--safe-bottom)); left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: rgba(240,240,240,0.95); color: #111;
+  padding: 9px 18px; border-radius: 30px; font-size: 13px; font-weight: 500; font-family: inherit;
+  opacity: 0; pointer-events: none; transition: all .2s; z-index: 9999; white-space: nowrap;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.panel::-webkit-scrollbar { width: 3px; }
+.panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="app-header">
+    <div class="app-title">전시대 <span>시간배정</span></div>
+    <div style="font-size:10px;color:var(--text3);letter-spacing:.6px">v1.1</div>
+  </div>
+
+  <!-- 배정 패널 -->
+  <div id="tab-schedule" class="panel active" style="display:flex;flex-direction:column;overflow:hidden;">
+    <div class="sheets-header" id="sheet-tabs"></div>
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+      <div class="panel-inner">
+        <div class="card">
+          <div class="section-label">시간대 설정</div>
+          <div class="input-row" style="margin-bottom:10px">
+            <div class="input-group"><div class="input-label">시작</div><input type="time" id="start-time" value="06:30"></div>
+            <div class="input-group"><div class="input-label">종료</div><input type="time" id="end-time" value="07:30"></div>
+            <div class="input-group"><div class="input-label">간격(분)</div><input type="number" id="interval" value="15" min="5" max="120" style="min-width:0"></div>
+          </div>
+          <button class="btn btn-primary btn-full" onclick="generateSlots()">시간대 자동 생성</button>
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div class="section-label" style="margin-bottom:0">봉사자 — 선택 후 슬롯을 탭하여 배정</div>
+            <button class="btn btn-sm" onclick="switchTab('volunteers')" style="font-size:11px">참여자 변경</button>
+          </div>
+          <div id="name-pool-info" style="font-size:12px;color:var(--text3);margin-bottom:6px"></div>
+          <div class="name-pool" id="name-pool"></div>
+        </div>
+        <div class="divider"></div>
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div class="section-label" style="margin-bottom:0">시간대 배정</div>
+            <button class="btn btn-danger btn-sm" onclick="clearAll()">전체 초기화</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px" id="slot-list">
+            <div class="empty-state">위에서 시간대를 먼저 생성하세요</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 봉사자 패널 -->
+  <div id="tab-volunteers" class="panel">
+    <div class="panel-inner">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="section-label" style="margin-bottom:0">참여자 선택</div>
+        <div class="filter-tabs">
+          <button class="fchip fa" id="fchip-all" onclick="setVolFilter('all')">전체</button>
+          <button class="fchip" id="fchip-male" onclick="setVolFilter('male')">형제</button>
+          <button class="fchip" id="fchip-female" onclick="setVolFilter('female')">자매</button>
+        </div>
+      </div>
+      <div id="vol-count" style="font-size:12px;color:var(--text3)"></div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+        <div style="font-size:12px;color:var(--text3);line-height:1.6;flex:1">이름을 탭하여 오늘 참여할 봉사자를 선택하세요</div>
+        <button class="btn btn-sm" onclick="selectAllVolunteers()" style="white-space:nowrap;flex-shrink:0">전체 선택</button>
+        <button class="btn btn-sm" onclick="clearVolSelection()" style="white-space:nowrap;flex-shrink:0">선택 해제</button>
+      </div>
+      <div id="vol-sel-count" style="font-size:12px;color:var(--accent);font-weight:600;min-height:18px"></div>
+      <div class="vol-grid" id="volunteer-list"></div>
+      <div id="vol-empty" class="empty-state">이름 관리 탭에서 봉사자를 추가하세요</div>
+      <div id="vol-assign-btn-wrap" style="display:none;position:sticky;bottom:0;padding-top:8px">
+        <button class="btn btn-primary btn-full" onclick="goToAssignWithSelected()" style="font-size:15px;padding:13px">✅ 선택한 봉사자로 배정 시작</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 이름 관리 패널 -->
+  <div id="tab-names" class="panel">
+    <div class="panel-inner">
+      <div class="card">
+        <div class="section-label">이름 추가</div>
+        <div class="gender-toggle" style="margin-bottom:10px">
+          <button class="gbtn am" id="gbtn-m" onclick="setGender('male')">👨 형제 (남)</button>
+          <button class="gbtn" id="gbtn-f" onclick="setGender('female')">👩 자매 (여)</button>
+        </div>
+        <div class="input-row">
+          <input type="text" id="new-name" placeholder="이름 (쉼표로 여러 명 입력)" style="flex:1" onkeydown="if(event.key==='Enter')addName()">
+          <button class="btn btn-primary" onclick="addName()">추가</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:7px">예: 김종우, 박민준</div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="section-label" style="margin-bottom:0">등록된 봉사자</div>
+          <span id="name-count-badge" style="font-size:12px;color:var(--text3)"></span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px" id="name-manage-list"></div>
+        <div id="name-empty" class="empty-state">아직 등록된 이름이 없습니다</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 내보내기 패널 -->
+  <div id="tab-export" class="panel">
+    <div class="panel-inner">
+      <div class="card">
+        <div class="section-label">배정표 선택 (복수 선택 가능)</div>
+        <div class="export-sheet-selector" id="export-sheet-selector"></div>
+      </div>
+      <div class="check-row" onclick="toggleIncludeEmpty()">
+        <input type="checkbox" id="include-empty">
+        <label for="include-empty">미배정 슬롯 포함</label>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-full" onclick="copyToClipboard()" style="font-size:14px;padding:12px">📋 클립보드에 복사</button>
+      </div>
+      <div id="export-result-info" style="font-size:12px;color:var(--text3);text-align:center;min-height:16px"></div>
+    </div>
+  </div>
+
+  <!-- 하단 탭 바 -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('schedule')"><span class="ti">🗓</span>배정</button>
+    <button class="tab-btn" onclick="switchTab('volunteers')"><span class="ti">👥</span>봉사자</button>
+    <button class="tab-btn" onclick="switchTab('names')"><span class="ti">✏️</span>이름 관리</button>
+    <button class="tab-btn" onclick="switchTab('export')"><span class="ti">📤</span>내보내기</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const MAX_SHEETS = 10;
+
+function defaultSheet(n) {
+  return { id: Date.now() + n, name: '배정표 ' + (n+1), slots: [] };
+}
+
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem('td_state_v4') || 'null');
+    if (s && Array.isArray(s.sheets) && s.sheets.length > 0) return s;
+  } catch(e) {}
+  return { sheets: [defaultSheet(0)], activeSheet: 0, names: [], selectedName: null, addGender: 'male' };
+}
+
+let state = loadState();
+let volFilter = 'all';
+let exportSheetIdxSet = new Set([0]); // 다중 선택
+let dragName = null;
+let selectedVolunteers = new Set();
+let assignPool = [];
+
+function save() {
+  try { localStorage.setItem('td_state_v4', JSON.stringify(state)); } catch(e) {}
+}
+function activeSheet() { return state.sheets[state.activeSheet]; }
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+const TABS = ['schedule','volunteers','names','export'];
+function switchTab(name) {
+  TABS.forEach((id, i) => {
+    document.getElementById('tab-' + id).classList.toggle('active', id === name);
+    document.querySelectorAll('.tab-btn')[i].classList.toggle('active', id === name);
+  });
+  if (name === 'export') { exportSheetIdxSet = new Set([state.activeSheet]); renderExport(); }
+  if (name === 'volunteers') renderVolunteers();
+}
+
+function renderSheetTabs() {
+  const c = document.getElementById('sheet-tabs');
+  let html = state.sheets.map((sh, i) => {
+    const isActive = i === state.activeSheet;
+    return '<div class="sheet-tab' + (isActive ? ' active' : '') + '" onclick="selectSheet(' + i + ')">' +
+      (isActive
+        ? '<input class="sheet-name-input" id="sni' + i + '" value="' + esc(sh.name) + '" maxlength="10" onclick="event.stopPropagation()" onblur="renameSheet(' + i + ',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()">'
+        : '<span>' + sh.name + '</span>'
+      ) +
+      (state.sheets.length > 1 ? '<div class="sheet-tab-close" onclick="deleteSheet(' + i + ',event)">✕</div>' : '') +
+      '</div>';
+  }).join('');
+  if (state.sheets.length < MAX_SHEETS) {
+    html += '<div class="add-sheet-btn" onclick="addSheet()">+</div>';
+  }
+  c.innerHTML = html;
+}
+
+function selectSheet(i) {
+  state.activeSheet = i; state.selectedName = null;
+  save(); renderSheetTabs(); renderAll();
+}
+
+function renameSheet(i, val) {
+  const name = val.trim() || ('배정표 ' + (i+1));
+  state.sheets[i].name = name; save(); renderSheetTabs();
+}
+
+function addSheet() {
+  if (state.sheets.length >= MAX_SHEETS) return showToast('최대 ' + MAX_SHEETS + '개까지 만들 수 있습니다');
+  const n = state.sheets.length;
+  state.sheets.push(defaultSheet(n));
+  state.activeSheet = state.sheets.length - 1;
+  save(); renderSheetTabs(); renderAll();
+  showToast('배정표 추가됨');
+  setTimeout(() => { const el = document.getElementById('sni' + state.activeSheet); if(el) { el.focus(); el.select(); } }, 120);
+}
+
+function deleteSheet(i, e) {
+  e.stopPropagation();
+  if (state.sheets.length <= 1) return;
+  if (!confirm('"' + state.sheets[i].name + '"을 삭제할까요?')) return;
+  state.sheets.splice(i, 1);
+  if (state.activeSheet >= state.sheets.length) state.activeSheet = state.sheets.length - 1;
+  save(); renderSheetTabs(); renderAll();
+  showToast('배정표 삭제됨');
+}
+
+function timeToMins(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
+function minsToTime(m) { return String(Math.floor(m/60)%24).padStart(2,'0') + ':' + String(m%60).padStart(2,'0'); }
+
+function generateSlots() {
+  const start = document.getElementById('start-time').value;
+  const end   = document.getElementById('end-time').value;
+  const intv  = parseInt(document.getElementById('interval').value);
+  if (!start||!end||!intv) return showToast('값을 모두 입력하세요');
+  const s = timeToMins(start), e = timeToMins(end);
+  if (e <= s) return showToast('종료 시각은 시작 이후여야 합니다');
+  if ((e-s)/intv > 50) return showToast('슬롯이 너무 많습니다');
+  const sh = activeSheet();
+  sh.slots = [];
+  for (let m = s; m < e; m += intv) sh.slots.push({ start: minsToTime(m), end: minsToTime(m+intv), names: [] });
+  save(); renderSlots(); renderNamePool();
+  showToast(sh.slots.length + '개 시간대 생성됨');
+}
+
+function nameGender(name) {
+  const n = state.names.find(x => x.name === name);
+  return n ? n.gender : 'male';
+}
+
+function renderNamePool() {
+  const pool = document.getElementById('name-pool');
+  const infoEl = document.getElementById('name-pool-info');
+  const poolNames = assignPool.length > 0 ? assignPool : state.names;
+  if (infoEl) {
+    if (assignPool.length > 0) {
+      infoEl.textContent = '참여자 ' + assignPool.length + '명 선택됨';
+      infoEl.style.color = 'var(--accent)';
+    } else if (state.names.length > 0) {
+      infoEl.textContent = '봉사자 탭에서 오늘 참여자를 선택하세요';
+      infoEl.style.color = 'var(--text3)';
+    } else {
+      infoEl.textContent = '';
+    }
+  }
+  if (state.names.length === 0) {
+    pool.innerHTML = '<span style="font-size:13px;color:var(--text3)">이름 관리 탭에서 봉사자를 추가하세요</span>';
+    return;
+  }
+  if (assignPool.length === 0) {
+    pool.innerHTML = '<span style="font-size:13px;color:var(--text3)">봉사자 탭에서 참여자를 선택하면 여기 표시됩니다</span>';
+    return;
+  }
+  pool.innerHTML = poolNames.map(n => {
+    const isSel = state.selectedName === n.name;
+    const g = n.gender;
+    const isAssigned = state.sheets.some(sh => sh.slots.some(s => s.names.includes(n.name)));
+    let cls = 'chip ';
+    if (isSel) cls += (g === 'female' ? 'sel-female' : 'sel-male');
+    else if (isAssigned) cls += 'assigned';
+    else cls += g;
+    const checkMark = isAssigned && !isSel ? ' ✓' : '';
+    return '<div class="' + cls + '" draggable="true"' +
+      ' onclick="selectName(\'' + esc(n.name) + '\')"' +
+      ' ondragstart="startDrag(\'' + esc(n.name) + '\',event)"' +
+      ' ondragend="endDrag(event)">' +
+      '<div class="gdot ' + (g === 'female' ? 'f' : 'm') + '" style="' + (isAssigned && !isSel ? 'background:var(--assigned)' : '') + '"></div>' + n.name + checkMark + '</div>';
+  }).join('');
+}
+
+function selectName(name) {
+  state.selectedName = state.selectedName === name ? null : name;
+  renderNamePool();
+}
+
+function startDrag(name, e) {
+  dragName = name; e.currentTarget.classList.add('dragging');
+  e.dataTransfer.setData('text/plain', name); e.dataTransfer.effectAllowed = 'copy';
+}
+function endDrag(e) { e.currentTarget.classList.remove('dragging'); }
+
+function renderSlots() {
+  const list = document.getElementById('slot-list');
+  const sh = activeSheet();
+  if (sh.slots.length === 0) { list.innerHTML = '<div class="empty-state">위에서 시간대를 생성하세요</div>'; return; }
+  list.innerHTML = sh.slots.map((slot, i) => {
+    const namesHtml = slot.names.length === 0
+      ? '<span class="slot-hint">드래그하거나 이름 선택 후 탭</span>'
+      : slot.names.map(n => {
+          const g = nameGender(n);
+          return '<div class="slot-chip ' + g + '" onclick="removeFromSlot(' + i + ',\'' + esc(n) + '\',event)">' +
+            '<div class="gdot ' + (g==='female'?'f':'m') + '"></div><span>' + n + '</span>' +
+            '<div class="rx">✕</div></div>';
+        }).join('');
+    return '<div class="slot-card" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropOnSlot(' + i + ',event)" onclick="clickSlot(' + i + ')">' +
+      '<div class="slot-header"><span class="slot-time">' + slot.start + ' ~ ' + slot.end + '</span>' +
+      '<button class="btn btn-danger btn-sm" onclick="clearSlot(' + i + ',event)">초기화</button></div>' +
+      '<div class="slot-body">' + namesHtml + '</div></div>';
+  }).join('');
+}
+
+function allowDrop(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function dropOnSlot(i, e) {
+  e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+  const name = e.dataTransfer.getData('text/plain') || dragName;
+  if (name) assignToSlot(i, name);
+}
+function clickSlot(i) { if (state.selectedName) assignToSlot(i, state.selectedName); }
+function assignToSlot(i, name) {
+  const sh = activeSheet();
+  if (!sh.slots[i].names.includes(name)) {
+    sh.slots[i].names.push(name);
+    save(); renderSlots(); renderNamePool();
+    showToast(name + ' → ' + sh.slots[i].start + ' 배정됨');
+  }
+}
+function removeFromSlot(i, name, e) {
+  e.stopPropagation();
+  activeSheet().slots[i].names = activeSheet().slots[i].names.filter(n => n !== name);
+  save(); renderSlots(); renderNamePool();
+}
+function clearSlot(i, e) {
+  e.stopPropagation();
+  activeSheet().slots[i].names = [];
+  save(); renderSlots(); renderNamePool();
+}
+function clearAll() {
+  if (!confirm('현재 배정표의 모든 배정을 초기화할까요?')) return;
+  activeSheet().slots.forEach(s => s.names = []);
+  save(); renderSlots(); renderNamePool();
+  showToast('전체 초기화 완료');
+}
+
+function setVolFilter(f) {
+  volFilter = f;
+  ['all','male','female'].forEach(k => {
+    const el = document.getElementById('fchip-' + k);
+    el.className = 'fchip';
+    if (k === f) el.className += (k==='all' ? ' fa' : k==='male' ? ' fm' : ' ff');
+  });
+  renderVolunteers();
+}
+
+function renderVolunteers() {
+  const list = document.getElementById('volunteer-list');
+  const empty = document.getElementById('vol-empty');
+  const countEl = document.getElementById('vol-count');
+  const selCountEl = document.getElementById('vol-sel-count');
+  const assignBtnWrap = document.getElementById('vol-assign-btn-wrap');
+  let names = state.names;
+  if (volFilter === 'male') names = names.filter(n => n.gender === 'male');
+  if (volFilter === 'female') names = names.filter(n => n.gender === 'female');
+  const total = state.names.length;
+  const males = state.names.filter(n => n.gender === 'male').length;
+  const females = total - males;
+  countEl.textContent = '전체 ' + total + '명 · 형제 ' + males + '명 · 자매 ' + females + '명';
+  const selCount = selectedVolunteers.size;
+  if (selCount > 0) {
+    selCountEl.textContent = selCount + '명 선택됨';
+    assignBtnWrap.style.display = 'block';
+  } else {
+    selCountEl.textContent = '';
+    assignBtnWrap.style.display = 'none';
+  }
+  if (names.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  const genderIcon = { male: '👨', female: '👩' };
+  list.innerHTML = names.map(n => {
+    const isSel = selectedVolunteers.has(n.name);
+    const g = n.gender;
+    const sheetAssigned = state.sheets.filter(sh => sh.slots.some(s => s.names.includes(n.name)));
+    const metaText = sheetAssigned.length > 0 ? sheetAssigned.map(sh => sh.name).join(', ') : '미배정';
+    return '<div class="vol-icon-item ' + (isSel ? (g==='female'?'sel-f':'sel-m') : '') + '" onclick="toggleVolSelect(\'' + esc(n.name) + '\')">' +
+      (isSel ? '<div class="vol-check-badge ' + (g==='female'?'f':'') + '">✓</div>' : '') +
+      '<div class="vol-icon-avatar ' + (g==='female'?'f':'m') + '">' + genderIcon[g] + '</div>' +
+      '<div class="vol-icon-name">' + n.name + '</div>' +
+      '<div class="vol-icon-meta">' + metaText + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderExport() {
+  const c = document.getElementById('export-sheet-selector');
+  c.innerHTML = state.sheets.map((sh, i) =>
+    '<button class="export-chip' + (exportSheetIdxSet.has(i) ? ' active' : '') + '" onclick="toggleExportSheet(' + i + ')">' + sh.name + '</button>'
+  ).join('');
+  const infoEl = document.getElementById('export-result-info');
+  if (infoEl) {
+    const selCount = exportSheetIdxSet.size;
+    infoEl.textContent = selCount > 0 ? selCount + '개 배정표 선택됨 — 복사 버튼을 누르세요' : '배정표를 선택하세요';
+  }
+}
+
+function toggleExportSheet(i) {
+  if (exportSheetIdxSet.has(i)) {
+    if (exportSheetIdxSet.size > 1) exportSheetIdxSet.delete(i);
+  } else {
+    exportSheetIdxSet.add(i);
+  }
+  renderExport();
+}
+
+function toggleIncludeEmpty() { const cb = document.getElementById('include-empty'); cb.checked = !cb.checked; }
+document.getElementById('include-empty').addEventListener('change', () => {});
+
+function buildExportText() {
+  const includeEmpty = document.getElementById('include-empty').checked;
+  const parts = [];
+  const sortedIdx = Array.from(exportSheetIdxSet).sort();
+  sortedIdx.forEach(i => {
+    const sh = state.sheets[i];
+    if (!sh) return;
+    const lines = sh.slots
+      .filter(s => includeEmpty || s.names.length > 0)
+      .map(s => s.start + '~' + s.end + ' ' + (s.names.length > 0 ? s.names.join(', ') : '(미배정)'));
+    if (lines.length > 0) {
+      parts.push('【' + sh.name + '】\n' + lines.join('\n'));
+    }
+  });
+  return parts.join('\n\n');
+}
+
+function copyToClipboard() {
+  if (exportSheetIdxSet.size === 0) return showToast('배정표를 먼저 선택하세요');
+  const text = buildExportText();
+  if (!text) return showToast('복사할 배정 내용이 없습니다');
+  const infoEl = document.getElementById('export-result-info');
+  const doFallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.top = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select(); ta.setSelectionRange(0, 99999);
+    try { document.execCommand('copy'); showToast('클립보드에 복사됨! ✅'); }
+    catch(e) { showToast('복사 실패 — 직접 선택하여 복사하세요'); }
+    document.body.removeChild(ta);
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text)
+      .then(() => { showToast('클립보드에 복사됨! ✅'); if(infoEl) infoEl.textContent = '복사 완료!'; })
+      .catch(() => doFallback());
+  } else {
+    doFallback();
+  }
+}
+
+function toggleVolSelect(name) {
+  if (selectedVolunteers.has(name)) {
+    selectedVolunteers.delete(name);
+  } else {
+    selectedVolunteers.add(name);
+  }
+  renderVolunteers();
+}
+
+function selectAllVolunteers() {
+  let names = state.names;
+  if (volFilter === 'male') names = names.filter(n => n.gender === 'male');
+  if (volFilter === 'female') names = names.filter(n => n.gender === 'female');
+  names.forEach(n => selectedVolunteers.add(n.name));
+  renderVolunteers();
+}
+
+function clearVolSelection() {
+  selectedVolunteers.clear();
+  renderVolunteers();
+}
+
+function goToAssignWithSelected() {
+  if (selectedVolunteers.size === 0) return showToast('봉사자를 먼저 선택하세요');
+  assignPool = state.names.filter(n => selectedVolunteers.has(n.name));
+  state.selectedName = null;
+  switchTab('schedule');
+  renderNamePool();
+  showToast(selectedVolunteers.size + '명 배정 준비 완료 — 이름 선택 후 슬롯 탭');
+}
+
+function setGender(g) {
+  state.addGender = g;
+  document.getElementById('gbtn-m').className = 'gbtn' + (g==='male' ? ' am' : '');
+  document.getElementById('gbtn-f').className = 'gbtn' + (g==='female' ? ' af' : '');
+}
+
+function addName() {
+  const input = document.getElementById('new-name');
+  const raw = input.value.trim();
+  if (!raw) return;
+  const existing = state.names.map(n => n.name);
+  const newNames = raw.split(',').map(n => n.trim()).filter(n => n && !existing.includes(n));
+  if (newNames.length === 0) return showToast('이미 등록된 이름입니다');
+  newNames.forEach(n => state.names.push({ name: n, gender: state.addGender }));
+  save(); input.value = '';
+  renderNameManage(); renderNamePool();
+  showToast(newNames.length + '명 추가됨 (' + (state.addGender === 'female' ? '자매' : '형제') + ')');
+}
+
+function removeName(name) {
+  if (!confirm('"' + name + '"을 삭제할까요?')) return;
+  state.names = state.names.filter(n => n.name !== name);
+  state.sheets.forEach(sh => sh.slots.forEach(s => s.names = s.names.filter(n => n !== name)));
+  if (state.selectedName === name) state.selectedName = null;
+  save(); renderNameManage(); renderNamePool(); renderSlots();
+  showToast(name + ' 삭제됨');
+}
+
+function renderNameManage() {
+  const list = document.getElementById('name-manage-list');
+  const empty = document.getElementById('name-empty');
+  const badge = document.getElementById('name-count-badge');
+  const males = state.names.filter(n => n.gender === 'male').length;
+  const females = state.names.length - males;
+  badge.textContent = '형제 ' + males + '명 · 자매 ' + females + '명';
+  if (state.names.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = state.names.map(n => {
+    const g = n.gender;
+    return '<div class="name-manage-row">' +
+      '<div class="name-manage-info">' +
+      '<div class="gdot ' + (g==='female'?'f':'m') + '" style="width:9px;height:9px"></div>' +
+      '<span style="font-size:15px;color:' + (g==='female'?'var(--female)':'var(--male)') + '">' + n.name + '</span>' +
+      '<span style="font-size:11px;color:var(--text3)">' + (g==='female'?'자매':'형제') + '</span>' +
+      '</div>' +
+      '<button class="btn btn-danger btn-sm" onclick="removeName(\'' + esc(n.name) + '\')">삭제</button>' +
+      '</div>';
+  }).join('');
+}
+
+function esc(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function renderAll() { renderNamePool(); renderSlots(); }
+
+renderSheetTabs();
+renderAll();
+renderNameManage();
+</script>
+</body>
+</html>
