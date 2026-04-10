@@ -37,6 +37,68 @@
   --safe-top: env(safe-area-inset-top, 0px);
 }
 
+/* 대도시 모드 테마 */
+body.metro-mode {
+  --accent: #f7931a;
+  --accent-bg: rgba(247,147,26,0.12);
+  --accent-border: rgba(247,147,26,0.3);
+  --male: #f7931a;
+  --male-bg: rgba(247,147,26,0.13);
+  --male-border: rgba(247,147,26,0.35);
+  --female: #e055a0;
+  --female-bg: rgba(224,85,160,0.13);
+  --female-border: rgba(224,85,160,0.35);
+  --assigned: #3ecf6e;
+  --assigned-bg: rgba(62,207,110,0.13);
+  --assigned-border: rgba(62,207,110,0.4);
+}
+
+/* 메뉴 모달 */
+.mode-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  z-index: 1000; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  align-items: flex-start; justify-content: flex-start;
+}
+.mode-overlay.open { display: flex; }
+.mode-menu {
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px;
+  margin: calc(var(--safe-top) + 60px) 14px; min-width: 210px; overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.mode-menu-header {
+  padding: 13px 16px 10px; font-size: 10px; font-weight: 700;
+  color: var(--text3); letter-spacing: 1px; text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+.mode-menu-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; cursor: pointer; transition: background .15s;
+  border: none; background: transparent; width: 100%;
+  font-family: inherit; font-size: 15px; font-weight: 500; color: var(--text);
+  text-align: left;
+}
+.mode-menu-item:active { background: var(--bg3); }
+.mode-menu-item.active { color: var(--accent); }
+.mode-menu-item .mode-icon { font-size: 20px; width: 28px; text-align: center; }
+.mode-menu-item .mode-check { margin-left: auto; font-size: 13px; color: var(--accent); }
+.mode-divider { height: 1px; background: var(--border); }
+
+/* 햄버거 버튼 */
+.menu-btn {
+  width: 36px; height: 36px; border-radius: 10px; background: var(--bg3);
+  border: 1px solid var(--border); color: var(--text2); font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: all .15s;
+}
+.menu-btn:active { transform: scale(.93); }
+
+/* 모드 배지 */
+.mode-badge {
+  font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px;
+  background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border);
+  letter-spacing: .3px;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; width: 100%; background: var(--bg); color: var(--text); font-family: 'Noto Sans KR', sans-serif; font-size: 15px; overflow: hidden; overscroll-behavior: none; }
 
@@ -231,13 +293,35 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
 
 .panel::-webkit-scrollbar { width: 3px; }
 .panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* 이름 관리 다중 선택 */
+.name-select-bar {
+  display: none; align-items: center; justify-content: space-between;
+  padding: 9px 13px; background: var(--accent-bg); border: 1px solid var(--accent-border);
+  border-radius: 10px; gap: 8px;
+}
+.name-select-bar.show { display: flex; }
+.name-select-bar.danger { background: var(--danger-bg); border-color: rgba(247,79,79,0.25); }
+.name-manage-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 13px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; gap: 8px; cursor: pointer; transition: background .12s, border-color .12s; user-select: none; }
+.name-manage-row.selected { background: var(--accent-bg); border-color: var(--accent-border); }
+.name-manage-row:active { opacity: .8; }
+.nm-checkbox {
+  width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--border2);
+  background: var(--bg3); flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: #fff; transition: all .12s;
+}
+.name-manage-row.selected .nm-checkbox { background: var(--accent); border-color: var(--accent); }
+.nm-long-hint { font-size: 11px; color: var(--text3); text-align: center; margin-top: 4px; }
 </style>
 </head>
 <body>
 <div class="app">
   <div class="app-header">
-    <div class="app-title">전시대 <span>시간배정</span></div>
-    <div style="font-size:10px;color:var(--text3);letter-spacing:.6px">v1.1</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="menu-btn" onclick="toggleModeMenu()" id="menu-btn">☰</button>
+      <div class="app-title">전시대 <span>시간배정</span></div>
+    </div>
+    <div class="mode-badge" id="mode-badge">회중</div>
   </div>
 
   <!-- 배정 패널 -->
@@ -248,8 +332,8 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
         <div class="card">
           <div class="section-label">시간대 설정</div>
           <div class="input-row" style="margin-bottom:10px">
-            <div class="input-group"><div class="input-label">시작</div><input type="time" id="start-time" value="06:30"></div>
-            <div class="input-group"><div class="input-label">종료</div><input type="time" id="end-time" value="07:30"></div>
+            <div class="input-group"><div class="input-label">시작</div><input type="time" id="start-time" value="18:30"></div>
+            <div class="input-group"><div class="input-label">종료</div><input type="time" id="end-time" value="19:30"></div>
             <div class="input-group"><div class="input-label">간격(분)</div><input type="number" id="interval" value="15" min="5" max="120" style="min-width:0"></div>
           </div>
           <button class="btn btn-primary btn-full" onclick="generateSlots()">시간대 자동 생성</button>
@@ -322,7 +406,16 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
           <div class="section-label" style="margin-bottom:0">등록된 봉사자</div>
           <span id="name-count-badge" style="font-size:12px;color:var(--text3)"></span>
         </div>
+        <!-- 선택 액션바 -->
+        <div class="name-select-bar" id="name-select-bar">
+          <span id="name-sel-count-text" style="font-size:13px;font-weight:600;color:var(--accent)"></span>
+          <div style="display:flex;gap:7px">
+            <button class="btn btn-sm" onclick="cancelNameSelect()" style="font-size:12px">취소</button>
+            <button class="btn btn-sm btn-danger" id="name-del-btn" onclick="deleteSelectedNames()" style="font-size:12px">🗑 삭제</button>
+          </div>
+        </div>
         <div style="display:flex;flex-direction:column;gap:6px" id="name-manage-list"></div>
+        <div class="nm-long-hint" id="nm-long-hint" style="display:none">길게 눌러 선택 모드 진입 · 탭으로 추가 선택</div>
         <div id="name-empty" class="empty-state">아직 등록된 이름이 없습니다</div>
       </div>
     </div>
@@ -357,16 +450,87 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
 
 <div class="toast" id="toast"></div>
 
+<!-- 모드 선택 메뉴 -->
+<div class="mode-overlay" id="mode-overlay" onclick="closeModeMenu(event)">
+  <div class="mode-menu" onclick="event.stopPropagation()">
+    <div class="mode-menu-header">모드 선택</div>
+    <button class="mode-menu-item" id="menu-item-congregation" onclick="setMode('congregation')">
+      <span class="mode-icon">🏠</span>
+      <span>회중</span>
+      <span class="mode-check" id="check-congregation">✓</span>
+    </button>
+    <div class="mode-divider"></div>
+    <button class="mode-menu-item" id="menu-item-metro" onclick="setMode('metro')">
+      <span class="mode-icon">🏙️</span>
+      <span>대도시</span>
+      <span class="mode-check" id="check-metro" style="display:none">✓</span>
+    </button>
+  </div>
+</div>
+
 <script>
 const MAX_SHEETS = 10;
 
+// ─── 모드 시스템 ───────────────────────────────────────────────
+let currentMode = localStorage.getItem('td_current_mode') || 'congregation';
+
+function getStateKey() { return currentMode === 'metro' ? 'td_state_v4_metro' : 'td_state_v4'; }
+function getVolKey()   { return currentMode === 'metro' ? 'td_vol_state_metro' : 'td_vol_state'; }
+
+function applyModeTheme() {
+  if (currentMode === 'metro') {
+    document.body.classList.add('metro-mode');
+  } else {
+    document.body.classList.remove('metro-mode');
+  }
+  const badge = document.getElementById('mode-badge');
+  if (badge) badge.textContent = currentMode === 'metro' ? '대도시' : '회중';
+
+  const cCheck = document.getElementById('check-congregation');
+  const mCheck = document.getElementById('check-metro');
+  if (cCheck) cCheck.style.display = currentMode === 'congregation' ? '' : 'none';
+  if (mCheck) mCheck.style.display = currentMode === 'metro' ? '' : 'none';
+}
+
+function setMode(mode) {
+  if (mode === currentMode) { closeModeMenu(); return; }
+  // 현재 모드 데이터 저장
+  save(); saveVolState();
+  // 모드 전환
+  currentMode = mode;
+  localStorage.setItem('td_current_mode', currentMode);
+  // 새 모드 데이터 로드
+  state = loadState();
+  const vs = loadVolState();
+  selectedVolunteers = vs.selectedVolunteers;
+  assignPool = vs.assignPool;
+  applyModeTheme();
+  closeModeMenu();
+  // 전체 재렌더링
+  renderSheetTabs();
+  renderAll();
+  renderNameManage();
+  renderVolunteers();
+  renderExport();
+  showToast((mode === 'metro' ? '🏙️ 대도시' : '🏠 회중') + ' 모드로 전환됨');
+}
+
+function toggleModeMenu() {
+  const overlay = document.getElementById('mode-overlay');
+  overlay.classList.toggle('open');
+}
+function closeModeMenu(e) {
+  document.getElementById('mode-overlay').classList.remove('open');
+}
+
+// ─── 상태 ───────────────────────────────────────────────────────
 function defaultSheet(n) {
   return { id: Date.now() + n, name: '배정표 ' + (n+1), slots: [] };
 }
 
 function loadState() {
   try {
-    const s = JSON.parse(localStorage.getItem('td_state_v4') || 'null');
+    const s = JSON.parse(localStorage.getItem(getStateKey()) || 'null');
     if (s && Array.isArray(s.sheets) && s.sheets.length > 0) return s;
   } catch(e) {}
   return { sheets: [defaultSheet(0)], activeSheet: 0, names: [], selectedName: null, addGender: 'male' };
@@ -374,12 +538,12 @@ function loadState() {
 
 let state = loadState();
 let volFilter = 'all';
-let exportSheetIdxSet = new Set([0]); // 다중 선택
+let exportSheetIdxSet = new Set([0]);
 let dragName = null;
 
 function loadVolState() {
   try {
-    const v = JSON.parse(localStorage.getItem('td_vol_state') || 'null');
+    const v = JSON.parse(localStorage.getItem(getVolKey()) || 'null');
     if (v) {
       return {
         selectedVolunteers: new Set(v.selectedVolunteers || []),
@@ -396,7 +560,7 @@ let assignPool = volState.assignPool;
 
 function saveVolState() {
   try {
-    localStorage.setItem('td_vol_state', JSON.stringify({
+    localStorage.setItem(getVolKey(), JSON.stringify({
       selectedVolunteers: Array.from(selectedVolunteers),
       assignPool: assignPool
     }));
@@ -404,7 +568,7 @@ function saveVolState() {
 }
 
 function save() {
-  try { localStorage.setItem('td_state_v4', JSON.stringify(state)); } catch(e) {}
+  try { localStorage.setItem(getStateKey(), JSON.stringify(state)); } catch(e) {}
 }
 function activeSheet() { return state.sheets[state.activeSheet]; }
 
@@ -418,6 +582,7 @@ function showToast(msg) {
 
 const TABS = ['schedule','volunteers','names','export'];
 function switchTab(name) {
+  if (nameSelectMode) { nameSelectMode = false; selectedNameSet.clear(); }
   TABS.forEach((id, i) => {
     document.getElementById('tab-' + id).classList.toggle('active', id === name);
     document.querySelectorAll('.tab-btn')[i].classList.toggle('active', id === name);
@@ -768,6 +933,45 @@ function addName() {
   showToast(newNames.length + '명 추가됨 (' + (state.addGender === 'female' ? '자매' : '형제') + ')');
 }
 
+let nameSelectMode = false;
+let selectedNameSet = new Set();
+let longPressTimer = null;
+
+function enterNameSelectMode(name) {
+  nameSelectMode = true;
+  selectedNameSet.add(name);
+  renderNameManage();
+}
+
+function cancelNameSelect() {
+  nameSelectMode = false;
+  selectedNameSet.clear();
+  renderNameManage();
+}
+
+function toggleNameSelect(name) {
+  if (!nameSelectMode) return;
+  if (selectedNameSet.has(name)) selectedNameSet.delete(name);
+  else selectedNameSet.add(name);
+  if (selectedNameSet.size === 0) { cancelNameSelect(); return; }
+  renderNameManage();
+}
+
+function deleteSelectedNames() {
+  const names = Array.from(selectedNameSet);
+  if (names.length === 0) return;
+  if (!confirm(names.length + '명을 삭제할까요?\n(' + names.join(', ') + ')')) return;
+  state.names = state.names.filter(n => !names.includes(n.name));
+  state.sheets.forEach(sh => sh.slots.forEach(s => s.names = s.names.filter(n => !names.includes(n))));
+  names.forEach(n => { selectedVolunteers.delete(n); });
+  assignPool = assignPool.filter(n => !names.includes(n.name));
+  if (names.includes(state.selectedName)) state.selectedName = null;
+  saveVolState(); save();
+  nameSelectMode = false; selectedNameSet.clear();
+  renderNameManage(); renderNamePool(); renderSlots();
+  showToast(names.length + '명 삭제됨');
+}
+
 function removeName(name) {
   if (!confirm('"' + name + '"을 삭제할까요?')) return;
   state.names = state.names.filter(n => n.name !== name);
@@ -784,27 +988,68 @@ function renderNameManage() {
   const list = document.getElementById('name-manage-list');
   const empty = document.getElementById('name-empty');
   const badge = document.getElementById('name-count-badge');
+  const bar = document.getElementById('name-select-bar');
+  const selText = document.getElementById('name-sel-count-text');
+  const hint = document.getElementById('nm-long-hint');
   const males = state.names.filter(n => n.gender === 'male').length;
   const females = state.names.length - males;
   badge.textContent = '형제 ' + males + '명 · 자매 ' + females + '명';
-  if (state.names.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+
+  // 액션바
+  if (nameSelectMode && selectedNameSet.size > 0) {
+    bar.classList.add('show', 'danger');
+    selText.textContent = selectedNameSet.size + '명 선택됨';
+    selText.style.color = 'var(--danger)';
+  } else {
+    bar.classList.remove('show', 'danger');
+  }
+
+  if (state.names.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; hint.style.display = 'none'; return; }
   empty.style.display = 'none';
+  hint.style.display = nameSelectMode ? 'none' : 'block';
+
   list.innerHTML = state.names.map(n => {
     const g = n.gender;
-    return '<div class="name-manage-row">' +
+    const isSel = selectedNameSet.has(n.name);
+    const rowCls = 'name-manage-row' + (isSel ? ' selected' : '');
+    const checkHtml = nameSelectMode
+      ? '<div class="nm-checkbox">' + (isSel ? '✓' : '') + '</div>'
+      : '';
+    const actionHtml = nameSelectMode ? '' : '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();removeName(\'' + esc(n.name) + '\')">삭제</button>';
+    return '<div class="' + rowCls + '" ' +
+      'onclick="nameRowClick(\'' + esc(n.name) + '\')" ' +
+      'ontouchstart="nmTouchStart(\'' + esc(n.name) + '\',event)" ' +
+      'ontouchend="nmTouchEnd()" ontouchmove="nmTouchEnd()" ' +
+      'onmousedown="nmMouseDown(\'' + esc(n.name) + '\')" ' +
+      'onmouseup="nmMouseEnd()" onmouseleave="nmMouseEnd()">' +
+      checkHtml +
       '<div class="name-manage-info">' +
       '<div class="gdot ' + (g==='female'?'f':'m') + '" style="width:9px;height:9px"></div>' +
       '<span style="font-size:15px;color:' + (g==='female'?'var(--female)':'var(--male)') + '">' + n.name + '</span>' +
       '<span style="font-size:11px;color:var(--text3)">' + (g==='female'?'자매':'형제') + '</span>' +
       '</div>' +
-      '<button class="btn btn-danger btn-sm" onclick="removeName(\'' + esc(n.name) + '\')">삭제</button>' +
+      actionHtml +
       '</div>';
   }).join('');
 }
 
+function nameRowClick(name) {
+  if (nameSelectMode) { toggleNameSelect(name); }
+  // 선택 모드 아닐 때는 롱프레스로만 진입
+}
+
+function nmTouchStart(name, e) {
+  longPressTimer = setTimeout(() => { enterNameSelectMode(name); }, 500);
+}
+function nmTouchEnd() { clearTimeout(longPressTimer); }
+function nmMouseDown(name) { longPressTimer = setTimeout(() => { enterNameSelectMode(name); }, 500); }
+function nmMouseEnd() { clearTimeout(longPressTimer); }
+
 function esc(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 function renderAll() { renderNamePool(); renderSlots(); }
 
+// ─── 초기화 ────────────────────────────────────────────────────
+applyModeTheme();
 renderSheetTabs();
 renderAll();
 renderNameManage();
