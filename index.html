@@ -376,8 +376,32 @@ let state = loadState();
 let volFilter = 'all';
 let exportSheetIdxSet = new Set([0]); // 다중 선택
 let dragName = null;
-let selectedVolunteers = new Set();
-let assignPool = [];
+
+function loadVolState() {
+  try {
+    const v = JSON.parse(localStorage.getItem('td_vol_state') || 'null');
+    if (v) {
+      return {
+        selectedVolunteers: new Set(v.selectedVolunteers || []),
+        assignPool: v.assignPool || []
+      };
+    }
+  } catch(e) {}
+  return { selectedVolunteers: new Set(), assignPool: [] };
+}
+
+const volState = loadVolState();
+let selectedVolunteers = volState.selectedVolunteers;
+let assignPool = volState.assignPool;
+
+function saveVolState() {
+  try {
+    localStorage.setItem('td_vol_state', JSON.stringify({
+      selectedVolunteers: Array.from(selectedVolunteers),
+      assignPool: assignPool
+    }));
+  } catch(e) {}
+}
 
 function save() {
   try { localStorage.setItem('td_state_v4', JSON.stringify(state)); } catch(e) {}
@@ -696,6 +720,7 @@ function toggleVolSelect(name) {
   } else {
     selectedVolunteers.add(name);
   }
+  saveVolState();
   renderVolunteers();
 }
 
@@ -704,11 +729,13 @@ function selectAllVolunteers() {
   if (volFilter === 'male') names = names.filter(n => n.gender === 'male');
   if (volFilter === 'female') names = names.filter(n => n.gender === 'female');
   names.forEach(n => selectedVolunteers.add(n.name));
+  saveVolState();
   renderVolunteers();
 }
 
 function clearVolSelection() {
   selectedVolunteers.clear();
+  saveVolState();
   renderVolunteers();
 }
 
@@ -716,6 +743,7 @@ function goToAssignWithSelected() {
   if (selectedVolunteers.size === 0) return showToast('봉사자를 먼저 선택하세요');
   assignPool = state.names.filter(n => selectedVolunteers.has(n.name));
   state.selectedName = null;
+  saveVolState();
   switchTab('schedule');
   renderNamePool();
   showToast(selectedVolunteers.size + '명 배정 준비 완료 — 이름 선택 후 슬롯 탭');
@@ -745,6 +773,9 @@ function removeName(name) {
   state.names = state.names.filter(n => n.name !== name);
   state.sheets.forEach(sh => sh.slots.forEach(s => s.names = s.names.filter(n => n !== name)));
   if (state.selectedName === name) state.selectedName = null;
+  selectedVolunteers.delete(name);
+  assignPool = assignPool.filter(n => n.name !== name);
+  saveVolState();
   save(); renderNameManage(); renderNamePool(); renderSlots();
   showToast(name + ' 삭제됨');
 }
