@@ -651,10 +651,26 @@ function generateSlots() {
   if (e <= s) return showToast('종료 시각은 시작 이후여야 합니다');
   if ((e-s)/intv > 50) return showToast('슬롯이 너무 많습니다');
   const sh = activeSheet();
-  sh.slots = [];
-  for (let m = s; m < e; m += intv) sh.slots.push({ start: minsToTime(m), end: minsToTime(m+intv), names: [] });
+
+  // 기존 배정 보존: 슬롯 인덱스 순서대로 names 수집
+  const oldNames = sh.slots.map(slot => slot.names || []);
+  const hasAssigned = oldNames.some(n => n.length > 0);
+
+  // 새 슬롯 생성
+  const newSlots = [];
+  for (let m = s; m < e; m += intv) newSlots.push({ start: minsToTime(m), end: minsToTime(m+intv), names: [] });
+
+  // 기존 배정이 있으면 인덱스 기준으로 이어붙임
+  if (hasAssigned) {
+    newSlots.forEach((slot, i) => {
+      if (i < oldNames.length) slot.names = oldNames[i].slice();
+    });
+  }
+
+  sh.slots = newSlots;
   save(); renderSlots(); renderNamePool();
-  showToast(sh.slots.length + '개 시간대 생성됨');
+  const msg = sh.slots.length + '개 시간대 생성됨' + (hasAssigned ? ' (기존 배정 유지)' : '');
+  showToast(msg);
 }
 
 function nameGender(name) {
