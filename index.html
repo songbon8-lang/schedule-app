@@ -6,7 +6,12 @@
 <meta name="theme-color" content="#0f0f0f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="전시대 배정">
 <title>전시대 시간 배정</title>
+
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" sizes="192x192" href="icon.png">
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 
@@ -324,7 +329,6 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
     <div class="mode-badge" id="mode-badge">회중</div>
   </div>
 
-  <!-- 배정 패널 -->
   <div id="tab-schedule" class="panel active" style="display:flex;flex-direction:column;overflow:hidden;">
     <div class="sheets-header" id="sheet-tabs"></div>
     <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">
@@ -369,7 +373,6 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
     </div>
   </div>
 
-  <!-- 봉사자 패널 -->
   <div id="tab-volunteers" class="panel">
     <div class="panel-inner">
       <div style="display:flex;align-items:center;justify-content:space-between">
@@ -395,7 +398,6 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
     </div>
   </div>
 
-  <!-- 이름 관리 패널 -->
   <div id="tab-names" class="panel">
     <div class="panel-inner">
       <div class="card">
@@ -415,7 +417,6 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
           <div class="section-label" style="margin-bottom:0">등록된 봉사자</div>
           <span id="name-count-badge" style="font-size:12px;color:var(--text3)"></span>
         </div>
-        <!-- 선택 액션바 -->
         <div class="name-select-bar" id="name-select-bar">
           <span id="name-sel-count-text" style="font-size:13px;font-weight:600;color:var(--accent)"></span>
           <div style="display:flex;gap:7px">
@@ -430,7 +431,6 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
     </div>
   </div>
 
-  <!-- 내보내기 패널 -->
   <div id="tab-export" class="panel">
     <div class="panel-inner">
       <div class="card">
@@ -448,7 +448,6 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
     </div>
   </div>
 
-  <!-- 하단 탭 바 -->
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('schedule')"><span class="ti">🗓</span>배정</button>
     <button class="tab-btn" onclick="switchTab('volunteers')"><span class="ti">👥</span>봉사자</button>
@@ -459,7 +458,6 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
 
 <div class="toast" id="toast"></div>
 
-<!-- 모드 선택 메뉴 -->
 <div class="mode-overlay" id="mode-overlay" onclick="closeModeMenu(event)">
   <div class="mode-menu" onclick="event.stopPropagation()">
     <div class="mode-menu-header">모드 선택</div>
@@ -1154,13 +1152,13 @@ function autoAssignRandom() {
   freeSlotIdxs.forEach(slotIdx => {
     let assigned = null;
     if (useBrother) {
-      if (bi < bPairs.length) assigned = bPairs[bi++];
-      else if (si < sPairs.length) assigned = sPairs[si++];
+      if (bi < bPairs.length) { assigned = bPairs[bi++]; useBrother = false; }
+      else if (si < sPairs.length) { assigned = sPairs[si++]; useBrother = true; }
     } else {
-      if (si < sPairs.length) assigned = sPairs[si++];
-      else if (bi < bPairs.length) assigned = bPairs[bi++];
+      if (si < sPairs.length) { assigned = sPairs[si++]; useBrother = true; }
+      else if (bi < bPairs.length) { assigned = bPairs[bi++]; useBrother = false; }
     }
-    useBrother = !useBrother;
+    
     if (assigned && assigned.length === 2) {
       sh.slots[slotIdx].names = assigned;
       sh.slots[slotIdx]._auto = true; // 자동 배정 표시
