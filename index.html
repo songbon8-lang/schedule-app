@@ -777,18 +777,19 @@ function assignToSlot(i, name) {
 function removeFromSlot(i, name, e) {
   e.stopPropagation();
   activeSheet().slots[i].names = activeSheet().slots[i].names.filter(n => n !== name);
+  if (activeSheet().slots[i].names.length === 0) delete activeSheet().slots[i]._auto;
   save(); renderSlots(); renderNamePool();
 }
 function clearSlot(i, e) {
   e.stopPropagation();
   activeSheet().slots[i].names = [];
+  delete activeSheet().slots[i]._auto;
   save(); renderSlots(); renderNamePool();
 }
 function clearAll() {
   const sh = activeSheet();
   if (sh.slots.every(s => s.names.length === 0)) return showToast('이미 비어 있습니다');
-  const backup = sh.slots.map(s => s.names.slice());
-  sh.slots.forEach(s => s.names = []);
+  sh.slots.forEach(s => { s.names = []; delete s._auto; });
   save(); renderSlots(); renderNamePool();
   showToast('전체 초기화 완료');
 }
@@ -809,7 +810,7 @@ function renderVolunteers() {
   const countEl = document.getElementById('vol-count');
   const selCountEl = document.getElementById('vol-sel-count');
   const assignBtnWrap = document.getElementById('vol-assign-btn-wrap');
-  let names = state.names;
+  let names = [...state.names].sort((a, b) => a.gender === b.gender ? 0 : a.gender === 'male' ? -1 : 1);
   if (volFilter === 'male') names = names.filter(n => n.gender === 'male');
   if (volFilter === 'female') names = names.filter(n => n.gender === 'female');
   const total = state.names.length;
@@ -1035,7 +1036,10 @@ function renderNameManage() {
   empty.style.display = 'none';
   hint.style.display = nameSelectMode ? 'none' : 'block';
 
-  list.innerHTML = state.names.map(n => {
+  list.innerHTML = [...state.names].sort((a, b) => {
+    if (a.gender === b.gender) return 0;
+    return a.gender === 'male' ? -1 : 1;
+  }).map(n => {
     const g = n.gender;
     const isSel = selectedNameSet.has(n.name);
     const rowCls = 'name-manage-row' + (isSel ? ' selected' : '');
@@ -1088,13 +1092,12 @@ function shuffleArray(arr) {
 
 function getEffectivePool() {
   const rawPool = (assignPool.length > 0 ? assignPool : state.names);
-  // 다른 배정표에 이미 배정된 사람 제외
-  const otherSheetAssigned = new Set();
+  // 현재 배정표 + 다른 배정표에 이미 배정된 사람 모두 제외
+  const alreadyAssigned = new Set();
   state.sheets.forEach((s, i) => {
-    if (i === state.activeSheet) return;
-    s.slots.forEach(slot => slot.names.forEach(n => otherSheetAssigned.add(n)));
+    s.slots.forEach(slot => slot.names.forEach(n => alreadyAssigned.add(n)));
   });
-  let pool = rawPool.filter(n => !otherSheetAssigned.has(n.name));
+  let pool = rawPool.filter(n => !alreadyAssigned.has(n.name));
   // 인원 수 제한
   const maxInput = parseInt(document.getElementById('assign-max-count').value);
   if (!isNaN(maxInput) && maxInput > 0 && maxInput < pool.length) {
@@ -1106,52 +1109,61 @@ function getEffectivePool() {
 function autoAssignRandom() {
   const sh = activeSheet();
   if (sh.slots.length === 0) return showToast('먼저 시간대를 생성하세요');
+
+  // 이미 자동 배정된 슬롯이 있으면 전체 초기화 후 재배정
+  const hasAutoAssigned = sh.slots.some(s => s._auto && s.names.length > 0);
+  if (hasAutoAssigned) {
+    sh.slots.forEach(s => { if (s._auto) { s.names = []; delete s._auto; } });
+  }
+
   const pool = getEffectivePool();
-  if (pool.length === 0) return showToast('사용 가능한 봉사자가 없습니다 (다른 배정표에 모두 배정됨)');
+  if (pool.length === 0) return showToast('사용 가능한 봉사자가 없습니다');
 
-  // 수동 배정된 슬롯 인덱스 파악
-  const manualSlots = new Set(sh.slots.map((s, i) => s.names.length > 0 ? i : -1).filter(i => i >= 0));
-  // 빈 슬롯만 대상
-  const freeSlotIdxs = sh.slots.map((s, i) => i).filter(i => !manualSlots.has(i));
-
-  if (freeSlotIdxs.length === 0) return showToast('모든 슬롯이 이미 수동 배정되어 있습니다');
+  // 수동 배정된 슬롯 파악 (빈 슬롯만 자동 배정 대상)
+  const freeSlotIdxs = sh.slots.map((s, i) => i).filter(i => sh.slots[i].names.length === 0);
+  if (freeSlotIdxs.length === 0) return showToast('모든 슬롯이 이미 배정되어 있습니다');
 
   const brothers = shuffleArray(pool.filter(n => n.gender === 'male'));
   const sisters  = shuffleArray(pool.filter(n => n.gender === 'female'));
 
-  // 각 성별 2명씩 페어 만들기
   function makePairs(people) {
     const pairs = [];
     for (let i = 0; i + 1 < people.length; i += 2) pairs.push([people[i].name, people[i+1].name]);
-    if (people.length % 2 === 1) pairs.push([people[people.length - 1].name]); // 대기자
+    if (people.length % 2 === 1) pairs.push([people[people.length - 1].name]);
     return pairs;
   }
 
   const bPairs = makePairs(brothers);
   const sPairs = makePairs(sisters);
 
-  // 슬롯 배정: 첫 타임 무조건 형제, 그 다음 번갈아
+  // 첫 번째 슬롯(인덱스 0)의 성별 파악 → 반대 성별부터 시작
+  // 첫 슬롯이 비어 있으면 형제부터 (기본)
+  let startWithBrother = true;
+  if (sh.slots.length > 0 && sh.slots[0].names.length > 0) {
+    const firstGenders = sh.slots[0].names.map(n => nameGender(n));
+    const hasMale = firstGenders.includes('male');
+    const hasFemale = firstGenders.includes('female');
+    if (hasMale && !hasFemale) startWithBrother = false;   // 첫타임 형제 → 다음은 자매
+    else if (hasFemale && !hasMale) startWithBrother = true; // 첫타임 자매 → 다음은 형제
+    else startWithBrother = true; // 혼성이면 형제부터
+  }
+
   let bi = 0, si = 0;
-  let firstDone = false;
+  let useBrother = startWithBrother;
 
   freeSlotIdxs.forEach(slotIdx => {
     let assigned = null;
-    if (!firstDone) {
-      // 첫 타임 = 형제
-      if (bi < bPairs.length) { assigned = bPairs[bi++]; firstDone = true; }
-      else if (si < sPairs.length) { assigned = sPairs[si++]; firstDone = true; }
-    } else {
-      // 이후 번갈아가며 (남은 쌍 있는 쪽 우선)
-      if (bi <= si && bi < bPairs.length) assigned = bPairs[bi++];
+    if (useBrother) {
+      if (bi < bPairs.length) assigned = bPairs[bi++];
       else if (si < sPairs.length) assigned = sPairs[si++];
+    } else {
+      if (si < sPairs.length) assigned = sPairs[si++];
       else if (bi < bPairs.length) assigned = bPairs[bi++];
     }
-    if (assigned) {
-      // 대기자(홀수 1명짜리 쌍)는 슬롯 없이 건너뜀
-      if (assigned.length === 2) {
-        sh.slots[slotIdx].names = assigned;
-      }
-      // 1명 대기자는 배정 안 함 (대기)
+    useBrother = !useBrother;
+    if (assigned && assigned.length === 2) {
+      sh.slots[slotIdx].names = assigned;
+      sh.slots[slotIdx]._auto = true; // 자동 배정 표시
     }
   });
 
@@ -1167,39 +1179,39 @@ function autoAssignRandom() {
 function autoAssignBalanced() {
   const sh = activeSheet();
   if (sh.slots.length === 0) return showToast('먼저 시간대를 생성하세요');
+
+  // 이미 자동 배정된 슬롯이 있으면 전체 초기화 후 재배정
+  const hasAutoAssigned = sh.slots.some(s => s._auto && s.names.length > 0);
+  if (hasAutoAssigned) {
+    sh.slots.forEach(s => { if (s._auto) { s.names = []; delete s._auto; } });
+  }
+
   const pool = getEffectivePool();
-  if (pool.length === 0) return showToast('사용 가능한 봉사자가 없습니다 (다른 배정표에 모두 배정됨)');
+  if (pool.length === 0) return showToast('사용 가능한 봉사자가 없습니다');
   if (pool.length < 2) return showToast('봉사자가 최소 2명 필요합니다');
 
-  // 수동 배정된 슬롯 보존
-  const manualSlots = new Set(sh.slots.map((s, i) => s.names.length > 0 ? i : -1).filter(i => i >= 0));
-  const freeSlotIdxs = sh.slots.map((s, i) => i).filter(i => !manualSlots.has(i));
+  const freeSlotIdxs = sh.slots.map((s, i) => i).filter(i => sh.slots[i].names.length === 0);
+  if (freeSlotIdxs.length === 0) return showToast('모든 슬롯이 이미 배정되어 있습니다');
 
-  if (freeSlotIdxs.length === 0) return showToast('모든 슬롯이 이미 수동 배정되어 있습니다');
-
-  // 봉사자를 원형 배열로 섞기
   const circle = shuffleArray(pool).map(p => p.name);
   const n = circle.length;
 
-  // 슬라이딩 윈도우: 슬롯마다 포인터를 1씩 밀어서
-  // [ptr, ptr+1] 두 명을 배정 → A,B / B,C / C,D / D,A ...
   let ptr = 0;
   freeSlotIdxs.forEach(slotIdx => {
     const a = circle[ptr % n];
     const b = circle[(ptr + 1) % n];
     sh.slots[slotIdx].names = [a, b];
+    sh.slots[slotIdx]._auto = true;
     ptr++;
   });
 
   save(); renderSlots(); renderNamePool();
 
-  // 각자 몇 번 섰는지 계산해서 토스트
   const turnCount = {};
   circle.forEach(name => turnCount[name] = 0);
   freeSlotIdxs.forEach((slotIdx, i) => {
-    const a = circle[(i) % n];
-    const b = circle[(i + 1) % n];
-    turnCount[a]++; turnCount[b]++;
+    turnCount[circle[i % n]]++;
+    turnCount[circle[(i + 1) % n]]++;
   });
   const counts = Object.values(turnCount);
   const min = Math.min(...counts), max = Math.max(...counts);
