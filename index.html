@@ -6,12 +6,7 @@
 <meta name="theme-color" content="#0f0f0f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="전시대 배정">
 <title>전시대 시간 배정</title>
-
-<link rel="apple-touch-icon" href="icon.png?v=2">
-<link rel="icon" sizes="192x192" href="icon.png?v=2">
-
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 
@@ -42,7 +37,6 @@
   --safe-top: env(safe-area-inset-top, 0px);
 }
 
-/* 대도시 모드 테마 */
 body.metro-mode {
   --accent: #f7931a;
   --accent-bg: rgba(247,147,26,0.12);
@@ -58,7 +52,6 @@ body.metro-mode {
   --assigned-border: rgba(62,207,110,0.4);
 }
 
-/* 메뉴 모달 */
 .mode-overlay {
   display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
   z-index: 1000; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
@@ -88,7 +81,6 @@ body.metro-mode {
 .mode-menu-item .mode-check { margin-left: auto; font-size: 13px; color: var(--accent); }
 .mode-divider { height: 1px; background: var(--border); }
 
-/* 햄버거 버튼 */
 .menu-btn {
   width: 36px; height: 36px; border-radius: 10px; background: var(--bg3);
   border: 1px solid var(--border); color: var(--text2); font-size: 16px;
@@ -97,7 +89,6 @@ body.metro-mode {
 }
 .menu-btn:active { transform: scale(.93); }
 
-/* 모드 배지 */
 .mode-badge {
   font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px;
   background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border);
@@ -190,6 +181,19 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
 .btn-sm { padding: 5px 11px; font-size: 12px; border-radius: 8px; }
 .btn-full { width: 100%; }
 
+/* 랜덤 배정 버튼 그룹 */
+.assign-btn-group {
+  display: flex; gap: 7px; flex-wrap: wrap;
+}
+.btn-random {
+  background: rgba(62,207,110,0.15); border-color: rgba(62,207,110,0.4); color: #3ecf6e;
+  flex: 1; min-width: 0;
+}
+.btn-relay {
+  background: rgba(255,183,77,0.15); border-color: rgba(255,183,77,0.4); color: #ffb74d;
+  flex: 1; min-width: 0;
+}
+
 .chip {
   padding: 7px 13px; border-radius: 30px; font-size: 14px; font-family: inherit;
   cursor: pointer; user-select: none; transition: all .15s;
@@ -228,6 +232,10 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
 .slot-chip .rx { width: 15px; height: 15px; background: rgba(255,255,255,0.07); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--text3); }
 .slot-hint { font-size: 12px; color: var(--text3); padding: 6px 2px; align-self: center; }
 
+/* 밀어내기 배정 슬롯 강조 */
+.slot-card.relay-slot { border-color: rgba(255,183,77,0.3); }
+.slot-card.relay-slot .slot-header { background: rgba(255,183,77,0.07); }
+
 .gender-toggle { display: flex; background: var(--bg3); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
 .gbtn { flex: 1; padding: 10px 8px; border: none; background: transparent; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; transition: all .15s; color: var(--text3); }
 .gbtn.am { background: var(--male-bg); color: var(--male); }
@@ -236,7 +244,6 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
 .name-manage-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 13px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; gap: 8px; }
 .name-manage-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 
-/* 봉사자 아이콘 그리드 */
 .vol-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; }
 .vol-icon-item {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
@@ -296,10 +303,18 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* 배정 결과 안내 박스 */
+.assign-result-box {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 10px;
+  padding: 11px 13px; font-size: 12px; color: var(--text2); line-height: 1.7;
+  display: none;
+}
+.assign-result-box.show { display: block; }
+.assign-result-box .arb-title { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: .5px; margin-bottom: 5px; text-transform: uppercase; }
+
 .panel::-webkit-scrollbar { width: 3px; }
 .panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 
-/* 이름 관리 다중 선택 */
 .name-select-bar {
   display: none; align-items: center; justify-content: space-between;
   padding: 9px 13px; background: var(--accent-bg); border: 1px solid var(--accent-border);
@@ -329,6 +344,7 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
     <div class="mode-badge" id="mode-badge">회중</div>
   </div>
 
+  <!-- 배정 패널 -->
   <div id="tab-schedule" class="panel active" style="display:flex;flex-direction:column;overflow:hidden;">
     <div class="sheets-header" id="sheet-tabs"></div>
     <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">
@@ -356,14 +372,15 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
             <div class="section-label" style="margin-bottom:0">시간대 배정</div>
             <button class="btn btn-danger btn-sm" onclick="clearAll()">전체 초기화</button>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 11px">
-            <span style="font-size:12px;color:var(--text3);flex-shrink:0">배정 인원</span>
-            <input type="number" id="assign-max-count" min="1" placeholder="전체" style="flex:1;padding:5px 8px;font-size:13px;min-width:0;border-radius:8px">
-            <span style="font-size:11px;color:var(--text3);flex-shrink:0">명 (빈칸=전체)</span>
+          <!-- 자동 배정 버튼 그룹 -->
+          <div class="assign-btn-group" style="margin-bottom:10px">
+            <button class="btn btn-random" onclick="doRandomAssign()">🎲 랜덤 배정<br><span style="font-size:10px;opacity:.8">동성 2명씩 · 형제 첫타임</span></button>
+            <button class="btn btn-relay" onclick="doRelayAssign()">🔄 밀어내기 배정<br><span style="font-size:10px;opacity:.8">균등 순환 · 성별 무관</span></button>
           </div>
-          <div style="display:flex;gap:6px;margin-bottom:10px">
-            <button class="btn btn-sm" onclick="autoAssignRandom()" style="flex:1;font-size:12px;background:var(--male-bg);border-color:var(--male-border);color:var(--male)">🎲 랜덤 배정</button>
-            <button class="btn btn-sm" onclick="autoAssignBalanced()" style="flex:1;font-size:12px;background:var(--assigned-bg);border-color:var(--assigned-border);color:var(--assigned)">🔄 밀어내기 배정</button>
+          <!-- 배정 결과 안내 -->
+          <div class="assign-result-box" id="assign-result-box">
+            <div class="arb-title" id="arb-title"></div>
+            <div id="arb-body"></div>
           </div>
           <div style="display:flex;flex-direction:column;gap:8px" id="slot-list">
             <div class="empty-state">위에서 시간대를 먼저 생성하세요</div>
@@ -373,6 +390,7 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
     </div>
   </div>
 
+  <!-- 봉사자 패널 -->
   <div id="tab-volunteers" class="panel">
     <div class="panel-inner">
       <div style="display:flex;align-items:center;justify-content:space-between">
@@ -398,6 +416,7 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
     </div>
   </div>
 
+  <!-- 이름 관리 패널 -->
   <div id="tab-names" class="panel">
     <div class="panel-inner">
       <div class="card">
@@ -431,6 +450,7 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
     </div>
   </div>
 
+  <!-- 내보내기 패널 -->
   <div id="tab-export" class="panel">
     <div class="panel-inner">
       <div class="card">
@@ -492,7 +512,6 @@ function applyModeTheme() {
   }
   const badge = document.getElementById('mode-badge');
   if (badge) badge.textContent = currentMode === 'metro' ? '대도시' : '회중';
-
   const cCheck = document.getElementById('check-congregation');
   const mCheck = document.getElementById('check-metro');
   if (cCheck) cCheck.style.display = currentMode === 'congregation' ? '' : 'none';
@@ -501,19 +520,15 @@ function applyModeTheme() {
 
 function setMode(mode) {
   if (mode === currentMode) { closeModeMenu(); return; }
-  // 현재 모드 데이터 저장
   save(); saveVolState();
-  // 모드 전환
   currentMode = mode;
   localStorage.setItem('td_current_mode', currentMode);
-  // 새 모드 데이터 로드
   state = loadState();
   const vs = loadVolState();
   selectedVolunteers = vs.selectedVolunteers;
   assignPool = vs.assignPool;
   applyModeTheme();
   closeModeMenu();
-  // 전체 재렌더링
   renderSheetTabs();
   renderAll();
   renderNameManage();
@@ -523,8 +538,7 @@ function setMode(mode) {
 }
 
 function toggleModeMenu() {
-  const overlay = document.getElementById('mode-overlay');
-  overlay.classList.toggle('open');
+  document.getElementById('mode-overlay').classList.toggle('open');
 }
 function closeModeMenu(e) {
   document.getElementById('mode-overlay').classList.remove('open');
@@ -658,31 +672,295 @@ function generateSlots() {
   if (e <= s) return showToast('종료 시각은 시작 이후여야 합니다');
   if ((e-s)/intv > 50) return showToast('슬롯이 너무 많습니다');
   const sh = activeSheet();
-
-  // 기존 배정 보존: 슬롯 인덱스 순서대로 names 수집
   const oldNames = sh.slots.map(slot => slot.names || []);
   const hasAssigned = oldNames.some(n => n.length > 0);
-
-  // 새 슬롯 생성
   const newSlots = [];
   for (let m = s; m < e; m += intv) newSlots.push({ start: minsToTime(m), end: minsToTime(m+intv), names: [] });
-
-  // 기존 배정이 있으면 인덱스 기준으로 이어붙임
   if (hasAssigned) {
     newSlots.forEach((slot, i) => {
       if (i < oldNames.length) slot.names = oldNames[i].slice();
     });
   }
-
   sh.slots = newSlots;
   save(); renderSlots(); renderNamePool();
-  const msg = sh.slots.length + '개 시간대 생성됨' + (hasAssigned ? ' (기존 배정 유지)' : '');
-  showToast(msg);
+  showToast(sh.slots.length + '개 시간대 생성됨' + (hasAssigned ? ' (기존 배정 유지)' : ''));
 }
 
 function nameGender(name) {
   const n = state.names.find(x => x.name === name);
   return n ? n.gender : 'male';
+}
+
+// ─── 🎲 랜덤 배정 ────────────────────────────────────────────────
+function doRandomAssign() {
+  const sh = activeSheet();
+  if (sh.slots.length === 0) return showToast('시간대를 먼저 생성하세요');
+  const pool = assignPool.length > 0 ? assignPool : state.names;
+  if (pool.length === 0) return showToast('봉사자를 먼저 선택하세요');
+
+  // 이미 배정된 사람 제외 (전체 슬롯 기준)
+  const alreadyAssigned = new Set();
+  sh.slots.forEach(s => s.names.forEach(n => alreadyAssigned.add(n)));
+
+  // 원본 성별 풀 (반복 채우기용 — 이미 배정된 사람은 처음부터 제외)
+  const baseMales = shuffle(pool.filter(n => n.gender === 'male' && !alreadyAssigned.has(n.name)));
+  const baseFemales = shuffle(pool.filter(n => n.gender === 'female' && !alreadyAssigned.has(n.name)));
+
+  // 현재 사용 가능한 큐 (소진되면 baseX를 다시 셔플해서 리필)
+  let males = [...baseMales];
+  let females = [...baseFemales];
+
+  // 큐에서 한 명 뽑기. 큐가 비면 base를 다시 셔플해서 리필(반복 순환).
+  // exclude(같은 슬롯에 이미 배정된 이름)와 중복되지 않도록 가능한 한 회피.
+  function pickOne(queue, base, exclude) {
+    if (queue.length === 0) {
+      if (base.length === 0) return null;
+      queue.push(...shuffle([...base]));
+    }
+    let idx = queue.findIndex(p => !exclude.includes(p.name));
+    if (idx === -1) idx = 0; // 인원이 1명뿐인 극단적 경우만 중복 허용
+    return queue.splice(idx, 1)[0];
+  }
+
+  // 배정 가능한 슬롯 추출 (현재 인원 < 2명인 슬롯)
+  const openSlots = sh.slots
+    .map((s, i) => ({ slot: s, idx: i, vacancy: 2 - s.names.length }))
+    .filter(x => x.vacancy > 0);
+
+  if (openSlots.length === 0) return showToast('모든 슬롯이 이미 배정되어 있습니다');
+
+  // 총 필요한 자리 수 vs 총 참여 인원 수 비교 → 인원이 모자라면 반복 채우기
+  const totalVacancy = openSlots.reduce((sum, x) => sum + x.vacancy, 0);
+  const totalPeople = baseMales.length + baseFemales.length;
+  const repeatMode = totalPeople > 0 && totalPeople < totalVacancy;
+
+  let assignCount = 0;
+  const waitList = [];
+
+  // 첫 번째 슬롯: 무조건 형제 우선
+  let firstDone = false;
+  for (let i = 0; i < openSlots.length; i++) {
+    const { slot, vacancy } = openSlots[i];
+    const isFirst = i === 0 && !firstDone;
+
+    if (isFirst) {
+      const needed = vacancy;
+      if (repeatMode) {
+        // 반복 모드: 형제 풀에서 필요한 만큼 순환시켜 채움 (형제가 아예 없으면 자매로 대체)
+        const hasMale = baseMales.length > 0;
+        for (let k = 0; k < needed; k++) {
+          const p = hasMale ? pickOne(males, baseMales, slot.names) : pickOne(females, baseFemales, slot.names);
+          if (p) { slot.names.push(p.name); assignCount++; }
+        }
+        firstDone = true;
+      } else {
+        if (males.length >= needed) {
+          for (let k = 0; k < needed; k++) { slot.names.push(males.shift().name); assignCount++; }
+          firstDone = true;
+        } else if (males.length > 0) {
+          // 형제가 1명뿐이라면 1명만 채우고 빈자리는 수동용으로 남김
+          slot.names.push(males.shift().name); assignCount++; firstDone = true;
+        } else {
+          // 형제 없으면 자매로 첫 슬롯 채움
+          for (let k = 0; k < Math.min(needed, females.length); k++) { slot.names.push(females.shift().name); assignCount++; }
+          firstDone = true;
+        }
+      }
+    } else {
+      // 나머지 슬롯: 동성 2명씩
+      const existingGenders = slot.names.map(n => nameGender(n));
+      let targetGender = existingGenders.length > 0
+        ? existingGenders[0]
+        : (males.length >= females.length ? 'male' : 'female');
+      const needed = vacancy;
+
+      if (repeatMode) {
+        for (let k = 0; k < needed; k++) {
+          const queue = targetGender === 'male' ? males : females;
+          const base = targetGender === 'male' ? baseMales : baseFemales;
+          const p = pickOne(queue, base, slot.names);
+          if (p) { slot.names.push(p.name); assignCount++; }
+        }
+      } else {
+        const src = targetGender === 'male' ? males : females;
+        if (src.length >= needed) {
+          for (let k = 0; k < needed; k++) { slot.names.push(src.shift().name); assignCount++; }
+        } else if (src.length > 0) {
+          // 해당 성별 1명 남은 경우 → 홀수 대기 (짝수로만 배정)
+          waitList.push(src[0]); src.shift();
+        }
+        // 인원 부족하면 슬롯 빈자리 그대로 (수동 배정 가능)
+      }
+    }
+  }
+
+  // 미배정 인원 수집 (반복 모드에서는 큐가 항상 순환되므로 대기자는 보통 없음)
+  const remaining = repeatMode ? [] : [...males, ...females, ...waitList];
+
+  save(); renderSlots(); renderNamePool();
+
+  showAssignResult(
+    '🎲 랜덤 배정 완료',
+    assignCount + '자리 배정됨' +
+    (repeatMode ? ' · 참여자 ' + totalPeople + '명을 반복 순환하여 ' + totalVacancy + '자리 모두 채움' : '') +
+    (remaining.length > 0
+      ? ' · 대기자 ' + remaining.length + '명: ' + remaining.map(n => n.name).join(', ')
+      : (repeatMode ? '' : ' · 전원 배정 완료'))
+  );
+  showToast('🎲 랜덤 배정 완료 — ' + assignCount + '자리 채움' + (repeatMode ? ' (반복 순환)' : ''));
+}
+
+// ─── 🔄 밀어내기 배정 ────────────────────────────────────────────
+function doRelayAssign() {
+  const sh = activeSheet();
+  if (sh.slots.length === 0) return showToast('시간대를 먼저 생성하세요');
+  const pool = assignPool.length > 0 ? assignPool : state.names;
+  if (pool.length === 0) return showToast('봉사자를 먼저 선택하세요');
+
+  // 이미 수동 배정된 슬롯 파악
+  const manualSlots = new Set();
+  sh.slots.forEach((s, i) => { if (s.names.length >= 2) manualSlots.add(i); });
+
+  // 배정 가능한 슬롯 인덱스
+  const openSlotIdxs = sh.slots
+    .map((s, i) => i)
+    .filter(i => !manualSlots.has(i));
+
+  if (openSlotIdxs.length === 0) return showToast('모든 슬롯이 이미 배정되어 있습니다');
+
+  // 이미 배정된 사람 제외
+  const alreadyAssigned = new Set();
+  sh.slots.forEach(s => s.names.forEach(n => alreadyAssigned.has(n) || alreadyAssigned.add(n)));
+  // 단, 수동 배정된 사람도 배정 풀에서 제거
+  const availPool = pool.filter(n => !alreadyAssigned.has(n.name));
+
+  if (availPool.length === 0) return showToast('배정 가능한 봉사자가 없습니다 (모두 이미 배정됨)');
+
+  const totalSlots = openSlotIdxs.length;
+  const totalSeats = totalSlots * 2;
+  const n = availPool.length;
+
+  // ── 균등 배분 계산 ──
+  // 각 사람이 서는 횟수: floor(totalSeats/n) 또는 ceil
+  const baseCount = Math.floor(totalSeats / n);
+  const extraCount = totalSeats % n; // 이 수만큼 사람이 1번 더 섬
+
+  // 인원 랜덤 셔플
+  const shuffled = shuffle([...availPool]);
+
+  // 각 사람별 서야 할 횟수 배열 생성
+  // 앞 extraCount명은 baseCount+1번, 나머지는 baseCount번
+  const schedule = []; // [{name, gender}, ...] 총 totalSeats개
+  shuffled.forEach((person, idx) => {
+    const times = idx < extraCount ? baseCount + 1 : baseCount;
+    for (let t = 0; t < times; t++) {
+      schedule.push(person);
+    }
+  });
+
+  // schedule을 2명씩 묶어서 각 슬롯에 배정
+  // 밀어내기 형식: schedule[0],schedule[1] → 슬롯0 / schedule[1],schedule[2] → 슬롯1 ...
+  // 이렇게 하면 겹치는 사람이 생기므로, 균등 우선 방식으로 단순 2명씩 묶기
+  // schedule 배열에서 슬롯 수만큼 2명씩 뽑아 배정
+  // (밀어내기 연속성: 홀수 연결을 위해 슬롯N의 두 번째 사람 = 슬롯N+1의 첫 번째 사람)
+
+  // 밀어내기 시퀀스 생성
+  // 인원이 슬롯 수보다 많을 때: 단순 2명씩
+  // 인원이 슬롯 수 이하일 때: 순환 밀어내기
+  let seq = []; // 길이 totalSlots+1 의 연속 시퀀스 → 슬롯i = seq[i], seq[i+1]
+
+  if (n <= totalSlots) {
+    // 순환 밀어내기: A B C D A B C D ...
+    // seq 길이 = totalSlots + 1
+    for (let i = 0; i <= totalSlots; i++) {
+      seq.push(shuffled[i % n]);
+    }
+  } else {
+    // 인원 > 슬롯: 균등 배분 후 밀어내기 시퀀스 구성
+    // 각 사람 횟수를 지키면서 연속 체인 만들기
+    // countMap: 각 사람이 몇 번 더 들어갈 수 있는지
+    const countMap = new Map();
+    shuffled.forEach((p, idx) => {
+      countMap.set(p.name, idx < extraCount ? baseCount + 1 : baseCount);
+    });
+
+    // 그리디하게 연속 시퀀스 생성
+    // 연속된 두 원소가 같은 사람이 되지 않도록
+    let last = null;
+    for (let i = 0; i <= totalSlots; i++) {
+      // 남은 횟수 있는 사람 중 last가 아닌 사람 선택 (많이 남은 순)
+      const candidates = shuffled.filter(p => countMap.get(p.name) > 0 && p.name !== (last ? last.name : null));
+      if (candidates.length === 0) {
+        // 어쩔 수 없이 같은 사람 연속 (매우 드문 경우)
+        const any = shuffled.find(p => countMap.get(p.name) > 0);
+        if (!any) break;
+        seq.push(any);
+        countMap.set(any.name, countMap.get(any.name) - 1);
+        last = any;
+      } else {
+        // 남은 횟수 가장 많은 사람 우선 (균등 유지)
+        candidates.sort((a,b) => countMap.get(b.name) - countMap.get(a.name));
+        const pick = candidates[0];
+        seq.push(pick);
+        countMap.set(pick.name, countMap.get(pick.name) - 1);
+        last = pick;
+      }
+    }
+  }
+
+  // 슬롯에 배정 (기존 수동 배정 슬롯 보존)
+  let assignCount = 0;
+  openSlotIdxs.forEach((slotIdx, i) => {
+    const slot = sh.slots[slotIdx];
+    const p1 = seq[i];
+    const p2 = seq[i + 1];
+    // 슬롯에 이미 1명 있는 경우: 빈 자리만 채움
+    if (slot.names.length === 0) {
+      if (p1 && !slot.names.includes(p1.name)) { slot.names.push(p1.name); assignCount++; }
+      if (p2 && p2.name !== p1?.name && !slot.names.includes(p2.name)) { slot.names.push(p2.name); assignCount++; }
+    } else if (slot.names.length === 1) {
+      // 이미 1명 있음: p1 또는 p2 중 없는 사람 추가
+      const existing = slot.names[0];
+      const toAdd = [p1, p2].find(p => p && p.name !== existing && !slot.names.includes(p.name));
+      if (toAdd) { slot.names.push(toAdd.name); assignCount++; }
+    }
+  });
+
+  // 대기자: 배정에서 빠진 인원
+  const assignedNames = new Set();
+  sh.slots.forEach(s => s.names.forEach(n => assignedNames.add(n)));
+  const waitList = availPool.filter(p => !assignedNames.has(p.name));
+
+  save(); renderSlots(); renderNamePool();
+
+  showAssignResult(
+    '🔄 밀어내기 배정 완료',
+    assignCount + '명 자리 배정됨' +
+    (waitList.length > 0
+      ? ' · 대기자 ' + waitList.length + '명: ' + waitList.map(p => p.name).join(', ')
+      : ' · 전원 배정 완료') +
+    (n <= totalSlots ? ' (순환 밀어내기)' : ' (균등 밀어내기)')
+  );
+  showToast('🔄 밀어내기 배정 완료');
+}
+
+// ── 배정 결과 안내 박스 표시 ──
+function showAssignResult(title, body) {
+  const box = document.getElementById('assign-result-box');
+  document.getElementById('arb-title').textContent = title;
+  document.getElementById('arb-body').textContent = body;
+  box.classList.add('show');
+  setTimeout(() => box.classList.remove('show'), 6000);
+}
+
+// ── 배열 셔플 (Fisher-Yates) ──
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 function renderNamePool() {
@@ -775,19 +1053,16 @@ function assignToSlot(i, name) {
 function removeFromSlot(i, name, e) {
   e.stopPropagation();
   activeSheet().slots[i].names = activeSheet().slots[i].names.filter(n => n !== name);
-  if (activeSheet().slots[i].names.length === 0) delete activeSheet().slots[i]._auto;
   save(); renderSlots(); renderNamePool();
 }
 function clearSlot(i, e) {
   e.stopPropagation();
   activeSheet().slots[i].names = [];
-  delete activeSheet().slots[i]._auto;
   save(); renderSlots(); renderNamePool();
 }
 function clearAll() {
-  const sh = activeSheet();
-  if (sh.slots.every(s => s.names.length === 0)) return showToast('이미 비어 있습니다');
-  sh.slots.forEach(s => { s.names = []; delete s._auto; });
+  if (!confirm('현재 배정표의 모든 배정을 초기화할까요?')) return;
+  activeSheet().slots.forEach(s => s.names = []);
   save(); renderSlots(); renderNamePool();
   showToast('전체 초기화 완료');
 }
@@ -808,7 +1083,7 @@ function renderVolunteers() {
   const countEl = document.getElementById('vol-count');
   const selCountEl = document.getElementById('vol-sel-count');
   const assignBtnWrap = document.getElementById('vol-assign-btn-wrap');
-  let names = [...state.names].sort((a, b) => a.gender === b.gender ? 0 : a.gender === 'male' ? -1 : 1);
+  let names = state.names;
   if (volFilter === 'male') names = names.filter(n => n.gender === 'male');
   if (volFilter === 'female') names = names.filter(n => n.gender === 'female');
   const total = state.names.length;
@@ -888,10 +1163,8 @@ function copyToClipboard() {
   const infoEl = document.getElementById('export-result-info');
   const doFallback = () => {
     const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed'; ta.style.top = '-9999px';
-    document.body.appendChild(ta);
-    ta.focus(); ta.select(); ta.setSelectionRange(0, 99999);
+    ta.value = text; ta.style.position = 'fixed'; ta.style.top = '-9999px';
+    document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, 99999);
     try { document.execCommand('copy'); showToast('클립보드에 복사됨! ✅'); }
     catch(e) { showToast('복사 실패 — 직접 선택하여 복사하세요'); }
     document.body.removeChild(ta);
@@ -900,19 +1173,13 @@ function copyToClipboard() {
     navigator.clipboard.writeText(text)
       .then(() => { showToast('클립보드에 복사됨! ✅'); if(infoEl) infoEl.textContent = '복사 완료!'; })
       .catch(() => doFallback());
-  } else {
-    doFallback();
-  }
+  } else { doFallback(); }
 }
 
 function toggleVolSelect(name) {
-  if (selectedVolunteers.has(name)) {
-    selectedVolunteers.delete(name);
-  } else {
-    selectedVolunteers.add(name);
-  }
-  saveVolState();
-  renderVolunteers();
+  if (selectedVolunteers.has(name)) selectedVolunteers.delete(name);
+  else selectedVolunteers.add(name);
+  saveVolState(); renderVolunteers();
 }
 
 function selectAllVolunteers() {
@@ -920,23 +1187,18 @@ function selectAllVolunteers() {
   if (volFilter === 'male') names = names.filter(n => n.gender === 'male');
   if (volFilter === 'female') names = names.filter(n => n.gender === 'female');
   names.forEach(n => selectedVolunteers.add(n.name));
-  saveVolState();
-  renderVolunteers();
+  saveVolState(); renderVolunteers();
 }
 
 function clearVolSelection() {
-  selectedVolunteers.clear();
-  saveVolState();
-  renderVolunteers();
+  selectedVolunteers.clear(); saveVolState(); renderVolunteers();
 }
 
 function goToAssignWithSelected() {
   if (selectedVolunteers.size === 0) return showToast('봉사자를 먼저 선택하세요');
   assignPool = state.names.filter(n => selectedVolunteers.has(n.name));
   state.selectedName = null;
-  saveVolState();
-  switchTab('schedule');
-  renderNamePool();
+  saveVolState(); switchTab('schedule'); renderNamePool();
   showToast(selectedVolunteers.size + '명 배정 준비 완료 — 이름 선택 후 슬롯 탭');
 }
 
@@ -964,15 +1226,11 @@ let selectedNameSet = new Set();
 let longPressTimer = null;
 
 function enterNameSelectMode(name) {
-  nameSelectMode = true;
-  selectedNameSet.add(name);
-  renderNameManage();
+  nameSelectMode = true; selectedNameSet.add(name); renderNameManage();
 }
 
 function cancelNameSelect() {
-  nameSelectMode = false;
-  selectedNameSet.clear();
-  renderNameManage();
+  nameSelectMode = false; selectedNameSet.clear(); renderNameManage();
 }
 
 function toggleNameSelect(name) {
@@ -1005,8 +1263,8 @@ function removeName(name) {
   if (state.selectedName === name) state.selectedName = null;
   selectedVolunteers.delete(name);
   assignPool = assignPool.filter(n => n.name !== name);
-  saveVolState();
-  save(); renderNameManage(); renderNamePool(); renderSlots();
+  saveVolState(); save();
+  renderNameManage(); renderNamePool(); renderSlots();
   showToast(name + ' 삭제됨');
 }
 
@@ -1020,8 +1278,6 @@ function renderNameManage() {
   const males = state.names.filter(n => n.gender === 'male').length;
   const females = state.names.length - males;
   badge.textContent = '형제 ' + males + '명 · 자매 ' + females + '명';
-
-  // 액션바
   if (nameSelectMode && selectedNameSet.size > 0) {
     bar.classList.add('show', 'danger');
     selText.textContent = selectedNameSet.size + '명 선택됨';
@@ -1029,21 +1285,14 @@ function renderNameManage() {
   } else {
     bar.classList.remove('show', 'danger');
   }
-
   if (state.names.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; hint.style.display = 'none'; return; }
   empty.style.display = 'none';
   hint.style.display = nameSelectMode ? 'none' : 'block';
-
-  list.innerHTML = [...state.names].sort((a, b) => {
-    if (a.gender === b.gender) return 0;
-    return a.gender === 'male' ? -1 : 1;
-  }).map(n => {
+  list.innerHTML = state.names.map(n => {
     const g = n.gender;
     const isSel = selectedNameSet.has(n.name);
     const rowCls = 'name-manage-row' + (isSel ? ' selected' : '');
-    const checkHtml = nameSelectMode
-      ? '<div class="nm-checkbox">' + (isSel ? '✓' : '') + '</div>'
-      : '';
+    const checkHtml = nameSelectMode ? '<div class="nm-checkbox">' + (isSel ? '✓' : '') + '</div>' : '';
     const actionHtml = nameSelectMode ? '' : '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();removeName(\'' + esc(n.name) + '\')">삭제</button>';
     return '<div class="' + rowCls + '" ' +
       'onclick="nameRowClick(\'' + esc(n.name) + '\')" ' +
@@ -1064,157 +1313,15 @@ function renderNameManage() {
 
 function nameRowClick(name) {
   if (nameSelectMode) { toggleNameSelect(name); }
-  // 선택 모드 아닐 때는 롱프레스로만 진입
 }
 
-function nmTouchStart(name, e) {
-  longPressTimer = setTimeout(() => { enterNameSelectMode(name); }, 500);
-}
+function nmTouchStart(name, e) { longPressTimer = setTimeout(() => { enterNameSelectMode(name); }, 500); }
 function nmTouchEnd() { clearTimeout(longPressTimer); }
 function nmMouseDown(name) { longPressTimer = setTimeout(() => { enterNameSelectMode(name); }, 500); }
 function nmMouseEnd() { clearTimeout(longPressTimer); }
 
 function esc(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 function renderAll() { renderNamePool(); renderSlots(); }
-
-// ─── 자동 배정 ──────────────────────────────────────────────────
-
-function shuffleArray(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function getEffectivePool() {
-  const rawPool = (assignPool.length > 0 ? assignPool : state.names);
-  // 현재 배정표 + 다른 배정표에 이미 배정된 사람 모두 제외
-  const alreadyAssigned = new Set();
-  state.sheets.forEach((s, i) => {
-    s.slots.forEach(slot => slot.names.forEach(n => alreadyAssigned.add(n)));
-  });
-  let pool = rawPool.filter(n => !alreadyAssigned.has(n.name));
-  // 인원 수 제한
-  const maxInput = parseInt(document.getElementById('assign-max-count').value);
-  if (!isNaN(maxInput) && maxInput > 0 && maxInput < pool.length) {
-    pool = shuffleArray(pool).slice(0, maxInput);
-  }
-  return pool;
-}
-
-function autoAssignRandom() {
-  const sh = activeSheet();
-  if (sh.slots.length === 0) return showToast('먼저 시간대를 생성하세요');
-
-  // 이미 자동 배정된 슬롯이 있으면 전체 초기화 후 재배정
-  const hasAutoAssigned = sh.slots.some(s => s._auto && s.names.length > 0);
-  if (hasAutoAssigned) {
-    sh.slots.forEach(s => { if (s._auto) { s.names = []; delete s._auto; } });
-  }
-
-  const pool = getEffectivePool();
-  if (pool.length === 0) return showToast('사용 가능한 봉사자가 없습니다');
-
-  // 수동 배정된 슬롯 파악 (빈 슬롯만 자동 배정 대상)
-  const freeSlotIdxs = sh.slots.map((s, i) => i).filter(i => sh.slots[i].names.length === 0);
-  if (freeSlotIdxs.length === 0) return showToast('모든 슬롯이 이미 배정되어 있습니다');
-
-  const brothers = shuffleArray(pool.filter(n => n.gender === 'male'));
-  const sisters  = shuffleArray(pool.filter(n => n.gender === 'female'));
-
-  function makePairs(people) {
-    const pairs = [];
-    for (let i = 0; i + 1 < people.length; i += 2) pairs.push([people[i].name, people[i+1].name]);
-    if (people.length % 2 === 1) pairs.push([people[people.length - 1].name]);
-    return pairs;
-  }
-
-  const bPairs = makePairs(brothers);
-  const sPairs = makePairs(sisters);
-
-  // 첫 번째 슬롯(인덱스 0)의 성별 파악 → 반대 성별부터 시작
-  // 첫 슬롯이 비어 있으면 형제부터 (기본)
-  let startWithBrother = true;
-  if (sh.slots.length > 0 && sh.slots[0].names.length > 0) {
-    const firstGenders = sh.slots[0].names.map(n => nameGender(n));
-    const hasMale = firstGenders.includes('male');
-    const hasFemale = firstGenders.includes('female');
-    if (hasMale && !hasFemale) startWithBrother = false;   // 첫타임 형제 → 다음은 자매
-    else if (hasFemale && !hasMale) startWithBrother = true; // 첫타임 자매 → 다음은 형제
-    else startWithBrother = true; // 혼성이면 형제부터
-  }
-
-  let bi = 0, si = 0;
-  let useBrother = startWithBrother;
-
-  freeSlotIdxs.forEach(slotIdx => {
-    let assigned = null;
-    if (useBrother) {
-      if (bi < bPairs.length) { assigned = bPairs[bi++]; useBrother = false; }
-      else if (si < sPairs.length) { assigned = sPairs[si++]; useBrother = true; }
-    } else {
-      if (si < sPairs.length) { assigned = sPairs[si++]; useBrother = true; }
-      else if (bi < bPairs.length) { assigned = bPairs[bi++]; useBrother = false; }
-    }
-    
-    if (assigned && assigned.length === 2) {
-      sh.slots[slotIdx].names = assigned;
-      sh.slots[slotIdx]._auto = true; // 자동 배정 표시
-    }
-  });
-
-  save(); renderSlots(); renderNamePool();
-  const waiting = [];
-  if (brothers.length % 2 === 1) waiting.push(brothers[brothers.length-1].name);
-  if (sisters.length % 2 === 1) waiting.push(sisters[sisters.length-1].name);
-  let msg = '🎲 랜덤 배정 완료';
-  if (waiting.length > 0) msg += ' (대기자: ' + waiting.join(', ') + ')';
-  showToast(msg);
-}
-
-function autoAssignBalanced() {
-  const sh = activeSheet();
-  if (sh.slots.length === 0) return showToast('먼저 시간대를 생성하세요');
-
-  // 이미 자동 배정된 슬롯이 있으면 전체 초기화 후 재배정
-  const hasAutoAssigned = sh.slots.some(s => s._auto && s.names.length > 0);
-  if (hasAutoAssigned) {
-    sh.slots.forEach(s => { if (s._auto) { s.names = []; delete s._auto; } });
-  }
-
-  const pool = getEffectivePool();
-  if (pool.length === 0) return showToast('사용 가능한 봉사자가 없습니다');
-  if (pool.length < 2) return showToast('봉사자가 최소 2명 필요합니다');
-
-  const freeSlotIdxs = sh.slots.map((s, i) => i).filter(i => sh.slots[i].names.length === 0);
-  if (freeSlotIdxs.length === 0) return showToast('모든 슬롯이 이미 배정되어 있습니다');
-
-  const circle = shuffleArray(pool).map(p => p.name);
-  const n = circle.length;
-
-  let ptr = 0;
-  freeSlotIdxs.forEach(slotIdx => {
-    const a = circle[ptr % n];
-    const b = circle[(ptr + 1) % n];
-    sh.slots[slotIdx].names = [a, b];
-    sh.slots[slotIdx]._auto = true;
-    ptr++;
-  });
-
-  save(); renderSlots(); renderNamePool();
-
-  const turnCount = {};
-  circle.forEach(name => turnCount[name] = 0);
-  freeSlotIdxs.forEach((slotIdx, i) => {
-    turnCount[circle[i % n]]++;
-    turnCount[circle[(i + 1) % n]]++;
-  });
-  const counts = Object.values(turnCount);
-  const min = Math.min(...counts), max = Math.max(...counts);
-  showToast('🔄 밀어내기 배정 완료 (1인당 ' + min + (min !== max ? '~' + max : '') + '회)');
-}
 
 // ─── 초기화 ────────────────────────────────────────────────────
 applyModeTheme();
