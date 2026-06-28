@@ -783,12 +783,13 @@ function clearSlot(i, e) {
   e.stopPropagation();
   activeSheet().slots[i].names = [];
   delete activeSheet().slots[i]._auto;
+  delete activeSheet().slots[i]._autoFill;
   save(); renderSlots(); renderNamePool();
 }
 function clearAll() {
   const sh = activeSheet();
   if (sh.slots.every(s => s.names.length === 0)) return showToast('이미 비어 있습니다');
-  sh.slots.forEach(s => { s.names = []; delete s._auto; });
+  sh.slots.forEach(s => { s.names = []; delete s._auto; delete s._autoFill; });
   save(); renderSlots(); renderNamePool();
   showToast('전체 초기화 완료');
 }
@@ -1112,6 +1113,23 @@ function getManualAssignedEntries(sh) {
   return entries;
 }
 
+function clearPreviousAutoAssignments(sh) {
+  const removedAutoFill = {};
+  sh.slots.forEach(slot => {
+    if (slot._auto) {
+      slot.names = [];
+      delete slot._auto;
+    }
+    if (slot._autoFill && slot._autoFill.length > 0) {
+      const autoFillNames = new Set(slot._autoFill);
+      removedAutoFill[sh.slots.indexOf(slot)] = slot._autoFill.slice();
+      slot.names = slot.names.filter(n => !autoFillNames.has(n));
+      delete slot._autoFill;
+    }
+  });
+  return removedAutoFill;
+}
+
 function getAssignedNamesOutsideActiveSheet() {
   const names = new Set();
   state.sheets.forEach((s, i) => {
@@ -1148,19 +1166,22 @@ function getRandomAssignPool(manualNames) {
   return getEffectivePool();
 }
 
-function completeSingleManualEntries(sh, manualEntries, pool) {
+function completeSingleManualEntries(sh, manualEntries, pool, previousAutoFill) {
   const remaining = pool.slice();
   const addedNames = [];
 
   for (const entry of manualEntries) {
     if (entry.names.length === 1) {
       const gender = nameGender(entry.names[0]);
-      const idx = remaining.findIndex(n => n.gender === gender);
+      const previousNames = new Set(previousAutoFill[entry.slotIdx] || []);
+      let idx = remaining.findIndex(n => n.gender === gender && !previousNames.has(n.name));
+      if (idx === -1) idx = remaining.findIndex(n => n.gender === gender);
       if (idx === -1) return { error: '수동 배정 옆에 넣을 같은 성별 봉사자가 없습니다' };
 
       const picked = remaining.splice(idx, 1)[0];
       entry.names.push(picked.name);
       sh.slots[entry.slotIdx].names = entry.names.slice();
+      sh.slots[entry.slotIdx]._autoFill = [picked.name];
       addedNames.push(picked.name);
     }
   }
@@ -1248,7 +1269,7 @@ function autoAssignRandom() {
 
   const maxCount = getAssignMaxCount();
   // 이전 자동 배정은 지우고, 수동 배정은 유지
-  sh.slots.forEach(s => { if (s._auto) { s.names = []; delete s._auto; } });
+  const previousAutoFill = clearPreviousAutoAssignments(sh);
 
   const manualEntries = getManualAssignedEntries(sh);
   const manualNames = getManualAssignedNames(sh);
@@ -1269,7 +1290,7 @@ function autoAssignRandom() {
     return showToast('배정 가능한 봉사자가 ' + pool.length + '명뿐입니다');
   }
 
-  const fillResult = completeSingleManualEntries(sh, manualEntries, pool);
+  const fillResult = completeSingleManualEntries(sh, manualEntries, pool, previousAutoFill);
   if (fillResult.error) return showToast(fillResult.error);
   pool = fillResult.pool;
   const selectedNames = fillResult.addedNames.slice();
