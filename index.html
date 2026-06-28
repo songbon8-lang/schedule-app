@@ -711,7 +711,7 @@ function renderNamePool() {
   pool.innerHTML = poolNames.map(n => {
     const isSel = state.selectedName === n.name;
     const g = n.gender;
-    const isAssigned = state.sheets.some(sh => sh.slots.some(s => s.names.includes(n.name)));
+    const isAssigned = activeSheet().slots.some(s => s.names.includes(n.name));
     let cls = 'chip ';
     if (isSel) cls += (g === 'female' ? 'sel-female' : 'sel-male');
     else if (isAssigned) cls += 'assigned';
@@ -768,6 +768,7 @@ function assignToSlot(i, name) {
   const sh = activeSheet();
   if (!sh.slots[i].names.includes(name)) {
     sh.slots[i].names.push(name);
+    delete sh.slots[i]._auto;
     save(); renderSlots(); renderNamePool();
     showToast(name + ' → ' + sh.slots[i].start + ' 배정됨');
   }
@@ -775,7 +776,7 @@ function assignToSlot(i, name) {
 function removeFromSlot(i, name, e) {
   e.stopPropagation();
   activeSheet().slots[i].names = activeSheet().slots[i].names.filter(n => n !== name);
-  if (activeSheet().slots[i].names.length === 0) delete activeSheet().slots[i]._auto;
+  delete activeSheet().slots[i]._auto;
   save(); renderSlots(); renderNamePool();
 }
 function clearSlot(i, e) {
@@ -1088,6 +1089,39 @@ function shuffleArray(arr) {
   return a;
 }
 
+function getAssignMaxCount() {
+  const maxInput = parseInt(document.getElementById('assign-max-count').value);
+  return !isNaN(maxInput) && maxInput > 0 ? maxInput : null;
+}
+
+function getManualAssignedNames(sh) {
+  const names = new Set();
+  sh.slots.forEach(slot => {
+    if (!slot._auto) slot.names.forEach(n => names.add(n));
+  });
+  return names;
+}
+
+function getManualAssignedEntries(sh) {
+  const entries = [];
+  sh.slots.forEach((slot, i) => {
+    if (!slot._auto && slot.names.length > 0) {
+      entries.push({ slotIdx: i, names: slot.names.slice() });
+    }
+  });
+  return entries;
+}
+
+function getAssignedNamesOutsideActiveSheet() {
+  const names = new Set();
+  state.sheets.forEach((s, i) => {
+    if (i !== state.activeSheet) {
+      s.slots.forEach(slot => slot.names.forEach(n => names.add(n)));
+    }
+  });
+  return names;
+}
+
 function getEffectivePool() {
   const rawPool = (assignPool.length > 0 ? assignPool : state.names);
   // 현재 배정표 + 다른 배정표에 이미 배정된 사람 모두 제외
@@ -1097,81 +1131,181 @@ function getEffectivePool() {
   });
   let pool = rawPool.filter(n => !alreadyAssigned.has(n.name));
   // 인원 수 제한
-  const maxInput = parseInt(document.getElementById('assign-max-count').value);
-  if (!isNaN(maxInput) && maxInput > 0 && maxInput < pool.length) {
-    pool = shuffleArray(pool).slice(0, maxInput);
+  const maxCount = getAssignMaxCount();
+  if (maxCount !== null && maxCount < pool.length) {
+    pool = shuffleArray(pool).slice(0, maxCount);
   }
   return pool;
+}
+
+function getRandomAssignPool(manualNames) {
+  const rawPool = (assignPool.length > 0 ? assignPool : state.names);
+  const maxCount = getAssignMaxCount();
+  if (maxCount !== null) {
+    const outsideAssigned = getAssignedNamesOutsideActiveSheet();
+    return rawPool.filter(n => !manualNames.has(n.name) && !outsideAssigned.has(n.name));
+  }
+  return getEffectivePool();
+}
+
+function completeSingleManualEntries(sh, manualEntries, pool) {
+  const remaining = pool.slice();
+  const addedNames = [];
+
+  for (const entry of manualEntries) {
+    if (entry.names.length === 1) {
+      const gender = nameGender(entry.names[0]);
+      const idx = remaining.findIndex(n => n.gender === gender);
+      if (idx === -1) return { error: '수동 배정 옆에 넣을 같은 성별 봉사자가 없습니다' };
+
+      const picked = remaining.splice(idx, 1)[0];
+      entry.names.push(picked.name);
+      sh.slots[entry.slotIdx].names = entry.names.slice();
+      addedNames.push(picked.name);
+    }
+  }
+
+  return { pool: remaining, addedNames };
+}
+
+function makeSameGenderPairOrder(pool, targetCount, requireBrotherPair) {
+  const brothers = shuffleArray(pool.filter(n => n.gender === 'male')).map(n => n.name);
+  const sisters  = shuffleArray(pool.filter(n => n.gender === 'female')).map(n => n.name);
+
+  if (requireBrotherPair && brothers.length < 2) return { error: '첫 타임 배정을 위해 형제가 최소 2명 필요합니다' };
+
+  targetCount = targetCount === null ? pool.length : Math.min(targetCount, pool.length);
+  const countOptions = [];
+  const minMaleCount = requireBrotherPair ? 2 : 0;
+  for (let maleCount = minMaleCount; maleCount <= Math.min(brothers.length, targetCount); maleCount++) {
+    const femaleCount = targetCount - maleCount;
+    if (femaleCount < 0 || femaleCount > sisters.length) continue;
+    if (maleCount === 1) continue;
+    if (femaleCount === 1) continue;
+    countOptions.push({
+      maleCount,
+      femaleCount,
+      score: (maleCount % 2) + (femaleCount % 2)
+    });
+  }
+  if (countOptions.length === 0) return { error: '같은 성별끼리 짝을 만들 인원이 부족합니다' };
+
+  const bestScore = Math.min(...countOptions.map(o => o.score));
+  const bestOptions = countOptions.filter(o => o.score === bestScore);
+  const picked = bestOptions[Math.floor(Math.random() * bestOptions.length)];
+  const selectedBrothers = brothers.slice(0, picked.maleCount);
+  const selectedSisters = sisters.slice(0, picked.femaleCount);
+
+  function makePairs(names) {
+    const pairs = [];
+    for (let i = 0; i + 1 < names.length; i += 2) pairs.push([names[i], names[i + 1]]);
+    if (names.length % 2 === 1 && names.length > 1) pairs.push([names[names.length - 1], names[0]]);
+    return pairs;
+  }
+
+  const brotherPairs = makePairs(selectedBrothers);
+  const sisterPairs = makePairs(selectedSisters);
+  const pairOrder = [];
+  let bi = 0, si = 0, useBrother = true;
+  while (bi < brotherPairs.length || si < sisterPairs.length) {
+    if (useBrother) {
+      if (bi < brotherPairs.length) pairOrder.push(brotherPairs[bi++]);
+      else if (si < sisterPairs.length) pairOrder.push(sisterPairs[si++]);
+    } else {
+      if (si < sisterPairs.length) pairOrder.push(sisterPairs[si++]);
+      else if (bi < brotherPairs.length) pairOrder.push(brotherPairs[bi++]);
+    }
+    useBrother = !useBrother;
+  }
+
+  return {
+    pairOrder,
+    selectedNames: selectedBrothers.concat(selectedSisters)
+  };
+}
+
+function buildRepeatPairOrder(manualEntries, randomPairOrder) {
+  const cycleLen = manualEntries.length + randomPairOrder.length;
+  const pairOrder = new Array(cycleLen).fill(null);
+  const pending = randomPairOrder.map(pair => pair.slice());
+
+  manualEntries.forEach(entry => {
+    const pos = entry.slotIdx % cycleLen;
+    if (pairOrder[pos] === null) pairOrder[pos] = entry.names.slice();
+    else pending.unshift(entry.names.slice());
+  });
+
+  for (let i = 0; i < pairOrder.length; i++) {
+    if (pairOrder[i] === null) pairOrder[i] = pending.shift();
+  }
+
+  return pairOrder.filter(pair => pair && pair.length > 0);
 }
 
 function autoAssignRandom() {
   const sh = activeSheet();
   if (sh.slots.length === 0) return showToast('먼저 시간대를 생성하세요');
 
-  // 이미 자동 배정된 슬롯이 있으면 전체 초기화 후 재배정
-  const hasAutoAssigned = sh.slots.some(s => s._auto && s.names.length > 0);
-  if (hasAutoAssigned) {
-    sh.slots.forEach(s => { if (s._auto) { s.names = []; delete s._auto; } });
+  const maxCount = getAssignMaxCount();
+  // 이전 자동 배정은 지우고, 수동 배정은 유지
+  sh.slots.forEach(s => { if (s._auto) { s.names = []; delete s._auto; } });
+
+  const manualEntries = getManualAssignedEntries(sh);
+  const manualNames = getManualAssignedNames(sh);
+  if (maxCount !== null && manualNames.size > maxCount) {
+    save(); renderSlots(); renderNamePool();
+    return showToast('수동 배정 인원이 배정 인원보다 많습니다');
   }
 
-  const pool = getEffectivePool();
-  if (pool.length === 0) return showToast('사용 가능한 봉사자가 없습니다');
+  let randomTargetCount = maxCount !== null ? Math.max(0, maxCount - manualNames.size) : null;
+  const singleManualCount = manualEntries.filter(entry => entry.names.length === 1).length;
+  if (randomTargetCount !== null && randomTargetCount < singleManualCount) {
+    save(); renderSlots(); renderNamePool();
+    return showToast('수동 1명 슬롯을 채울 배정 인원이 부족합니다');
+  }
+
+  let pool = getRandomAssignPool(manualNames);
+  if (randomTargetCount !== null && pool.length < randomTargetCount) {
+    return showToast('배정 가능한 봉사자가 ' + pool.length + '명뿐입니다');
+  }
+
+  const fillResult = completeSingleManualEntries(sh, manualEntries, pool);
+  if (fillResult.error) return showToast(fillResult.error);
+  pool = fillResult.pool;
+  const selectedNames = fillResult.addedNames.slice();
+  if (randomTargetCount !== null) randomTargetCount -= fillResult.addedNames.length;
+
+  let randomPairOrder = [];
+  if (randomTargetCount === null || randomTargetCount > 0) {
+    if (pool.length === 0) return showToast('사용 가능한 봉사자가 없습니다');
+    if (pool.length < 2) return showToast('봉사자가 최소 2명 필요합니다');
+    if (randomTargetCount !== null && randomTargetCount < 2) {
+      save(); renderSlots(); renderNamePool();
+      return showToast('남은 랜덤 배정 인원이 2명 미만입니다');
+    }
+
+    const requireBrotherPair = sh.slots[0] && sh.slots[0].names.length === 0;
+    const result = makeSameGenderPairOrder(pool, randomTargetCount, requireBrotherPair);
+    if (result.error) return showToast(result.error);
+    randomPairOrder = result.pairOrder;
+    selectedNames.push(...result.selectedNames);
+  }
 
   // 수동 배정된 슬롯 파악 (빈 슬롯만 자동 배정 대상)
   const freeSlotIdxs = sh.slots.map((s, i) => i).filter(i => sh.slots[i].names.length === 0);
   if (freeSlotIdxs.length === 0) return showToast('모든 슬롯이 이미 배정되어 있습니다');
 
-  const brothers = shuffleArray(pool.filter(n => n.gender === 'male'));
-  const sisters  = shuffleArray(pool.filter(n => n.gender === 'female'));
-
-  function makePairs(people) {
-    const pairs = [];
-    for (let i = 0; i + 1 < people.length; i += 2) pairs.push([people[i].name, people[i+1].name]);
-    if (people.length % 2 === 1) pairs.push([people[people.length - 1].name]);
-    return pairs;
-  }
-
-  const bPairs = makePairs(brothers);
-  const sPairs = makePairs(sisters);
-
-  // 첫 번째 슬롯(인덱스 0)의 성별 파악 → 반대 성별부터 시작
-  // 첫 슬롯이 비어 있으면 형제부터 (기본)
-  let startWithBrother = true;
-  if (sh.slots.length > 0 && sh.slots[0].names.length > 0) {
-    const firstGenders = sh.slots[0].names.map(n => nameGender(n));
-    const hasMale = firstGenders.includes('male');
-    const hasFemale = firstGenders.includes('female');
-    if (hasMale && !hasFemale) startWithBrother = false;   // 첫타임 형제 → 다음은 자매
-    else if (hasFemale && !hasMale) startWithBrother = true; // 첫타임 자매 → 다음은 형제
-    else startWithBrother = true; // 혼성이면 형제부터
-  }
-
-  let bi = 0, si = 0;
-  let useBrother = startWithBrother;
+  const pairOrder = buildRepeatPairOrder(manualEntries, randomPairOrder);
+  if (pairOrder.length === 0) return showToast('반복할 배정 조합이 없습니다');
 
   freeSlotIdxs.forEach(slotIdx => {
-    let assigned = null;
-    if (useBrother) {
-      if (bi < bPairs.length) { assigned = bPairs[bi++]; useBrother = false; }
-      else if (si < sPairs.length) { assigned = sPairs[si++]; useBrother = true; }
-    } else {
-      if (si < sPairs.length) { assigned = sPairs[si++]; useBrother = true; }
-      else if (bi < bPairs.length) { assigned = bPairs[bi++]; useBrother = false; }
-    }
-    
-    if (assigned && assigned.length === 2) {
-      sh.slots[slotIdx].names = assigned;
-      sh.slots[slotIdx]._auto = true; // 자동 배정 표시
-    }
+    const assigned = pairOrder[slotIdx % pairOrder.length];
+    sh.slots[slotIdx].names = assigned.slice();
+    sh.slots[slotIdx]._auto = true; // 자동 배정 표시
   });
 
   save(); renderSlots(); renderNamePool();
-  const waiting = [];
-  if (brothers.length % 2 === 1) waiting.push(brothers[brothers.length-1].name);
-  if (sisters.length % 2 === 1) waiting.push(sisters[sisters.length-1].name);
-  let msg = '🎲 랜덤 배정 완료';
-  if (waiting.length > 0) msg += ' (대기자: ' + waiting.join(', ') + ')';
-  showToast(msg);
+  showToast('🎲 랜덤 배정 완료 (' + (manualNames.size + selectedNames.length) + '명 순환)');
 }
 
 function autoAssignBalanced() {
