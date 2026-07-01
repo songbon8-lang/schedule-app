@@ -711,7 +711,7 @@ function renderNamePool() {
   pool.innerHTML = poolNames.map(n => {
     const isSel = state.selectedName === n.name;
     const g = n.gender;
-    const isAssigned = activeSheet().slots.some(s => s.names.includes(n.name));
+    const isAssigned = state.sheets.some(sh => sh.slots.some(s => s.names.includes(n.name)));
     let cls = 'chip ';
     if (isSel) cls += (g === 'female' ? 'sel-female' : 'sel-male');
     else if (isAssigned) cls += 'assigned';
