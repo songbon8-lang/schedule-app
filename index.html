@@ -441,8 +441,9 @@ input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
         <input type="checkbox" id="include-empty">
         <label for="include-empty">미배정 슬롯 포함</label>
       </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-primary btn-full" onclick="copyToClipboard()" style="font-size:14px;padding:12px">📋 클립보드에 복사</button>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-primary btn-full" onclick="copyToClipboard()" style="font-size:14px;padding:12px">📋 텍스트 복사</button>
+        <button class="btn btn-full" onclick="copyImageTable()" style="font-size:14px;padding:12px;background:var(--assigned-bg);border-color:var(--assigned-border);color:var(--assigned)">🖼 이미지 표 복사</button>
       </div>
       <div id="export-result-info" style="font-size:12px;color:var(--text3);text-align:center;min-height:16px"></div>
     </div>
@@ -905,6 +906,246 @@ function copyToClipboard() {
   } else {
     doFallback();
   }
+}
+
+function buildExportImageSheets() {
+  const includeEmpty = document.getElementById('include-empty').checked;
+  return Array.from(exportSheetIdxSet).sort().map(i => {
+    const sh = state.sheets[i];
+    if (!sh) return null;
+    const rows = sh.slots
+      .filter(s => includeEmpty || s.names.length > 0)
+      .map(s => ({
+        time: s.start + ' ~ ' + s.end,
+        names: s.names.length > 0 ? s.names.join(' / ') : '미배정',
+        empty: s.names.length === 0
+      }));
+    return { name: sh.name, rows };
+  }).filter(Boolean).filter(sh => sh.rows.length > 0);
+}
+
+function drawRoundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.lineTo(x + w - rr, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+  ctx.lineTo(x + w, y + h - rr);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+  ctx.lineTo(x + rr, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+  ctx.lineTo(x, y + rr);
+  ctx.quadraticCurveTo(x, y, x + rr, y);
+  ctx.closePath();
+}
+
+function wrapCanvasText(ctx, text, maxWidth) {
+  const words = String(text || '').split(/(\s+)/).filter(Boolean);
+  const lines = [];
+  let line = '';
+
+  words.forEach(word => {
+    const next = line + word;
+    if (ctx.measureText(next).width <= maxWidth) {
+      line = next;
+      return;
+    }
+    if (line.trim()) lines.push(line.trim());
+    line = '';
+
+    if (ctx.measureText(word).width <= maxWidth) {
+      line = word;
+      return;
+    }
+
+    let chunk = '';
+    Array.from(word).forEach(ch => {
+      const nextChunk = chunk + ch;
+      if (ctx.measureText(nextChunk).width <= maxWidth) {
+        chunk = nextChunk;
+      } else {
+        if (chunk) lines.push(chunk);
+        chunk = ch;
+      }
+    });
+    line = chunk;
+  });
+
+  if (line.trim()) lines.push(line.trim());
+  return lines.length > 0 ? lines : [''];
+}
+
+function buildExportImageCanvas() {
+  const sheets = buildExportImageSheets();
+  if (sheets.length === 0) return null;
+
+  const width = 740;
+  const pad = 28;
+  const cardW = width - pad * 2;
+  const timeW = 180;
+  const nameW = cardW - timeW - 42;
+  const sheetGap = 20;
+  const titleH = 54;
+  const sheetTitleH = 46;
+  const tableHeadH = 36;
+  const minRowH = 46;
+  const lineH = 22;
+
+  const measureCanvas = document.createElement('canvas');
+  const measureCtx = measureCanvas.getContext('2d');
+  measureCtx.font = '600 23px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif';
+
+  const prepared = sheets.map(sheet => {
+    const rows = sheet.rows.map(row => {
+      measureCtx.font = '600 23px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif';
+      const nameLines = wrapCanvasText(measureCtx, row.names, nameW);
+      return {
+        time: row.time,
+        names: row.names,
+        empty: row.empty,
+        nameLines,
+        h: Math.max(minRowH, 18 + nameLines.length * lineH)
+      };
+    });
+    const h = sheetTitleH + tableHeadH + rows.reduce((sum, row) => sum + row.h, 0);
+    return { name: sheet.name, rows, h };
+  });
+
+  const height = pad + titleH + prepared.reduce((sum, sheet, i) => sum + sheet.h + (i > 0 ? sheetGap : 0), 0) + pad;
+  const dpr = Math.max(2, Math.min(3, window.devicePixelRatio || 2));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(width * dpr);
+  canvas.height = Math.round(height * dpr);
+  canvas.style.width = width + 'px';
+  canvas.style.height = height + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.textBaseline = 'middle';
+
+  const bg = ctx.createLinearGradient(0, 0, 0, height);
+  bg.addColorStop(0, '#f8fafc');
+  bg.addColorStop(1, '#eef3f8');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.fillStyle = '#0f172a';
+  ctx.font = '800 31px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif';
+  ctx.fillText('전시대 배정표', pad, pad + 24);
+  ctx.fillStyle = '#2563eb';
+  drawRoundRect(ctx, pad, pad + 43, 62, 4, 2);
+  ctx.fill();
+
+  let y = pad + titleH;
+  prepared.forEach((sheet, sheetIdx) => {
+    if (sheetIdx > 0) y += sheetGap;
+    drawRoundRect(ctx, pad, y, cardW, sheet.h, 14);
+    ctx.shadowColor = 'rgba(15, 23, 42, 0.12)';
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 7;
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.strokeStyle = '#d7e0ea';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#2563eb';
+    drawRoundRect(ctx, pad + 20, y + 17, 4, 20, 2);
+    ctx.fill();
+    ctx.fillStyle = '#1e3a8a';
+    ctx.font = '800 22px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif';
+    ctx.fillText(sheet.name, pad + 32, y + 25);
+
+    let rowY = y + sheetTitleH;
+    ctx.fillStyle = '#edf4ff';
+    ctx.fillRect(pad + 1, rowY, cardW - 2, tableHeadH);
+    ctx.fillStyle = '#334155';
+    ctx.font = '800 16px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif';
+    ctx.fillText('시간', pad + 22, rowY + tableHeadH / 2);
+    ctx.fillText('봉사자', pad + timeW + 22, rowY + tableHeadH / 2);
+    ctx.strokeStyle = '#dbe6f3';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad + timeW, rowY + 8);
+    ctx.lineTo(pad + timeW, rowY + tableHeadH - 8);
+    ctx.stroke();
+    rowY += tableHeadH;
+
+    sheet.rows.forEach((row, rowIdx) => {
+      ctx.fillStyle = rowIdx % 2 === 0 ? '#ffffff' : '#f9fbfe';
+      ctx.fillRect(pad + 1, rowY, cardW - 2, row.h);
+
+      ctx.strokeStyle = '#e5ebf2';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad + 18, rowY);
+      ctx.lineTo(pad + cardW - 18, rowY);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#edf2f7';
+      ctx.beginPath();
+      ctx.moveTo(pad + timeW, rowY + 8);
+      ctx.lineTo(pad + timeW, rowY + row.h - 8);
+      ctx.stroke();
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '700 20px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif';
+      ctx.fillText(row.time, pad + 22, rowY + row.h / 2);
+
+      ctx.fillStyle = row.empty ? '#94a3b8' : '#0f172a';
+      ctx.font = row.empty
+        ? '600 20px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif'
+        : '800 23px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif';
+      const firstLineY = rowY + row.h / 2 - ((row.nameLines.length - 1) * lineH) / 2;
+      row.nameLines.forEach((line, lineIdx) => {
+        ctx.fillText(line, pad + timeW + 22, firstLineY + lineIdx * lineH);
+      });
+
+      rowY += row.h;
+    });
+
+    y += sheet.h;
+  });
+
+  return canvas;
+}
+
+function downloadExportImage(blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '전시대-배정표.png';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('이미지 복사 대신 PNG로 저장됨');
+  const infoEl = document.getElementById('export-result-info');
+  if (infoEl) infoEl.textContent = '이미지 복사가 지원되지 않아 PNG로 저장했습니다';
+}
+
+function copyImageTable() {
+  if (exportSheetIdxSet.size === 0) return showToast('배정표를 먼저 선택하세요');
+  const canvas = buildExportImageCanvas();
+  if (!canvas) return showToast('이미지로 복사할 배정 내용이 없습니다');
+  const infoEl = document.getElementById('export-result-info');
+
+  canvas.toBlob(blob => {
+    if (!blob) return showToast('이미지 생성 실패');
+    if (navigator.clipboard && window.ClipboardItem) {
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+        .then(() => {
+          showToast('이미지 표 복사됨! ✅');
+          if (infoEl) infoEl.textContent = '이미지 표 복사 완료!';
+        })
+        .catch(() => downloadExportImage(blob));
+    } else {
+      downloadExportImage(blob);
+    }
+  }, 'image/png');
 }
 
 function toggleVolSelect(name) {
