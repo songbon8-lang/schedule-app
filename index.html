@@ -1053,11 +1053,11 @@ function buildExportImageCanvas() {
     ctx.stroke();
 
     ctx.fillStyle = '#2563eb';
-    drawRoundRect(ctx, pad + 20, y + 17, 4, 20, 2);
+    drawRoundRect(ctx, pad + 20, y + 15, 4, 20, 2);
     ctx.fill();
     ctx.fillStyle = '#1e3a8a';
     ctx.font = '800 22px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif';
-    ctx.fillText(sheet.name, pad + 32, y + 25);
+    ctx.fillText(sheet.name, pad + 32, y + 26);
 
     let rowY = y + sheetTitleH;
     ctx.fillStyle = '#edf4ff';
